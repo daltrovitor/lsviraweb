@@ -34,8 +34,8 @@ import { parse } from 'url';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { whatsappService } from './services/whatsapp';
-import { campaignService } from './services/campaign';
+import { whatsappManager } from './services/whatsapp';
+import { campaignManager } from './services/campaign';
 import { setupSockets } from './sockets';
 import { parseCSV } from './utils/csv';
 import authRouter from './routes/auth';
@@ -132,13 +132,13 @@ const startServer = (app: express.Express) => {
   httpServer.listen(PORT, async () => {
     console.log(`> Servidor Backend ${shouldIntegrateNext ? 'Fullstack' : 'Standalone'} rodando na porta ${PORT}`);
     try {
-      await whatsappService.init();
-      console.log('WhatsApp Service inicializado');
+      // Multi-tenant: sessões são criadas sob demanda quando o usuário se registra via Socket
+      console.log('WhatsApp Manager pronto (sessões sob demanda)');
       
       // Retomar campanhas agendadas pendentes do Supabase
-      await campaignService.resumeScheduledCampaigns();
+      await campaignManager.resumeAllScheduledCampaigns();
     } catch (error) {
-      console.error('Erro ao inicializar WhatsApp Service:', error);
+      console.error('Erro ao inicializar serviços:', error);
     }
   });
 };
