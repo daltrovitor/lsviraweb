@@ -12,23 +12,26 @@ function resolveSocketUrl(): string {
 
 const SOCKET_URL = resolveSocketUrl();
 
-export const socket: Socket = io(SOCKET_URL, {
-  autoConnect: false,
-  reconnection: true,
-  reconnectionAttempts: 10,
-  reconnectionDelay: 2000,
-  transports: ['websocket', 'polling'],
-});
+// Mock socket for Vercel deployment (no backend server)
+const mockSocket = {
+  connected: false,
+  id: null,
+  emit: () => {},
+  on: () => mockSocket,
+  off: () => mockSocket,
+  connect: () => {},
+  disconnect: () => {},
+} as unknown as Socket;
+
+// Disable socket for Vercel (no backend server)
+export const socket: Socket = mockSocket;
 
 /** Call after login so we don't spam connection errors on the auth screen. */
 export function connectSocket(): void {
-  if (!socket.connected) {
-    socket.connect();
-  }
+  // Disabled for Vercel deployment
+  console.log('Socket connection disabled for Vercel deployment');
 }
 
 export function disconnectSocket(): void {
-  if (socket.connected) {
-    socket.disconnect();
-  }
+  // Disabled for Vercel deployment
 }

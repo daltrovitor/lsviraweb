@@ -11,7 +11,7 @@ export type UserProfile = {
   email?: string | null;
 };
 
-const PROFILE_COLUMNS = 'id, full_name, company, phone, role, status, created_at, last_access';
+const PROFILE_COLUMNS = 'id, full_name, company, role, status, created_at, last_access';
 
 function profileFromUser(user: User): UserProfile {
   return {
