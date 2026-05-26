@@ -49,13 +49,17 @@ const start = async () => {
     cors: { origin: '*', methods: ['GET', 'POST'] },
   });
   setupSockets(io);
+  
+  // Render exige host '0.0.0.0' e porta dinâmica via process.env.PORT
   const PORT = parseInt(process.env.PORT || '3000', 10);
-  httpServer.listen(PORT, () => {
-    console.log(`> Server listening on ${PORT}`);
-    // Initialize services
-    if (whatsappManager?.initialize) whatsappManager.initialize();
-    if (campaignManager?.resumeAllScheduledCampaigns) campaignManager.resumeAllScheduledCampaigns();
+  const HOST = process.env.HOST || '0.0.0.0';
+  
+  httpServer.listen(PORT, HOST, () => {
+    console.log(`> Server listening on http://${HOST}:${PORT}`);
+    // Initialize services (campaign manager handles scheduled campaigns)
+    campaignManager.resumeAllScheduledCampaigns();
   });
 };
 
 start();
+

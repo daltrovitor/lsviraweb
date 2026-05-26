@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "tsx server/index.ts",
     "dev:next": "next dev",
-    "build": "next build",
-    "start": "tsx server/index.ts",
+    "build": "next build && tsc -p server/tsconfig.json",
+    "start": "NODE_ENV=production node server/dist/index.js",
     "lint": "next lint"
   },
   "dependencies": {

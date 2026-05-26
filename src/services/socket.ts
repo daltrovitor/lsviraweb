@@ -3,35 +3,38 @@
 import { io, Socket } from 'socket.io-client';
 
 function resolveSocketUrl(): string {
+  // Use external socket server URL if configured (for Vercel deployment)
+  if (process.env.NEXT_PUBLIC_SOCKET_URL) {
+    return process.env.NEXT_PUBLIC_SOCKET_URL;
+  }
+  
+  // Fallback to same origin for local development
   if (typeof window !== 'undefined') {
-    // Always use the same origin as the page (integrated Next + Socket server)
     return window.location.origin;
   }
-  return process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3000';
+  
+  return 'http://localhost:3000';
 }
 
 const SOCKET_URL = resolveSocketUrl();
 
-// Mock socket for Vercel deployment (no backend server)
-const mockSocket = {
-  connected: false,
-  id: null,
-  emit: () => {},
-  on: () => mockSocket,
-  off: () => mockSocket,
-  connect: () => {},
-  disconnect: () => {},
-} as unknown as Socket;
-
-// Disable socket for Vercel (no backend server)
-export const socket: Socket = mockSocket;
+export const socket: Socket = io(SOCKET_URL, {
+  autoConnect: false,
+  reconnection: true,
+  reconnectionAttempts: 10,
+  reconnectionDelay: 2000,
+  transports: ['websocket', 'polling'],
+});
 
 /** Call after login so we don't spam connection errors on the auth screen. */
 export function connectSocket(): void {
-  // Disabled for Vercel deployment
-  console.log('Socket connection disabled for Vercel deployment');
+  if (!socket.connected) {
+    socket.connect();
+  }
 }
 
 export function disconnectSocket(): void {
-  // Disabled for Vercel deployment
+  if (socket.connected) {
+    socket.disconnect();
+  }
 }

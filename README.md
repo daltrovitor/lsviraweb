@@ -22,7 +22,7 @@ Landing Page (/landing) - Captura de Leads
 disparador/
 ├── src/
 │   ├── app/
-│   │   ├── page.tsx              # Login principal (Admin)
+│   │   ├── page.tsx              # Login principal (Dashboard)
 │   │   ├── layout.tsx             # Layout global com Toaster
 │   │   ├── landing/page.tsx        # Landing page de captura de leads
 │   │   └── admin/
@@ -56,6 +56,13 @@ disparador/
 │   │   └── numberSanitizer.ts     # Sanitização
 │   └── types/
 │       └── index.ts               # Interfaces backend
+├── background-server/             # Servidor de background 24/7
+│   ├── src/
+│   │   └── index.ts               # Servidor principal de scraping
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── railway.json               # Config Railway
+│   └── render.yaml                # Config Render
 ├── scripts/
 │   └── admin_schema.sql           # Schema do banco
 ├── public/
@@ -63,7 +70,8 @@ disparador/
 ├── tsconfig.json
 ├── next.config.js
 ├── tailwind.config.ts
-└── DEPLOYMENT.md                  # Guia de deploy
+├── DEPLOYMENT.md                  # Guia de deploy
+└── BACKGROUND_SERVER.md           # Guia do servidor de background
 ```
 
 ## 🚀 Início Rápido
@@ -258,6 +266,29 @@ await whatsappService.init();
 - SUPABASE_SERVICE_KEY: Nunca expor publicamente
 - Usar variáveis de ambiente
 - Sanitizar inputs do usuário
+
+## ⚙️ Servidor de Background
+
+O projeto inclui um servidor de background separado para processar tarefas pesadas de Web Scraping 24/7.
+
+### Funcionalidades
+- Processa jobs de scraping do Google Maps
+- Escuta jobs via Supabase Realtime
+- Salva logs e resultados no Supabase
+- Roda independentemente do frontend
+
+### Deploy
+Ver [BACKGROUND_SERVER.md](./BACKGROUND_SERVER.md) para instruções completas de deploy no Railway ou Render.
+
+### Quick Start (Local)
+
+```bash
+cd background-server
+npm install
+cp .env.example .env
+# Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY
+npm run dev
+```
 
 ## 🚀 Deploy
 

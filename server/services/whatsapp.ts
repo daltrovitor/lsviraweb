@@ -116,6 +116,7 @@ export class WhatsAppService extends EventEmitter {
 
       if (qr) {
         // Converter QR Buffer para base64 string para transmissão via socket
+        // @ts-ignore - QR type can be complex, this works at runtime
         const qrBase64 = typeof qr === 'string' ? qr : (Buffer.isBuffer(qr) ? qr.toString('base64') : Buffer.from(qr).toString('base64'));
         this.status = { ...this.status, state: 'qrcode', qr: qrBase64 };
         console.log(`[WhatsApp ${this.userId}] QR Code gerado (${qrBase64.length} bytes)`);
