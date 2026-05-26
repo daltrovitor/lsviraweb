@@ -643,9 +643,9 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
                   className="w-full bg-transparent border-none p-0 text-xs focus:outline-none font-medium text-slate-600"
                 >
                   <option value={0}>Todas avaliações</option>
-                  <option value={4}>★ >= 4.0</option>
-                  <option value={4.5}>★ >= 4.5</option>
-                  <option value={4.8}>★ >= 4.8</option>
+                  <option value={4}>★ {'≥'} 4.0</option>
+                  <option value={4.5}>★ {'≥'} 4.5</option>
+                  <option value={4.8}>★ {'≥'} 4.8</option>
                 </select>
               </div>
 
