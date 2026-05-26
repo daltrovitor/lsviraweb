@@ -1,0 +1,161 @@
+-- Habilitar a extensão pgcrypto se não estiver habilitada
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- ==========================================
+-- 1. Tabela de Perfis de Usuários (profiles)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  full_name TEXT,
+  company TEXT,
+  phone TEXT,
+  role TEXT DEFAULT 'user',
+  status TEXT DEFAULT 'pending',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  last_access TIMESTAMP WITH TIME ZONE
+);
+
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own profile" 
+  ON public.profiles FOR SELECT 
+  USING (auth.uid() = id);
+
+CREATE POLICY "Users can update own profile" 
+  ON public.profiles FOR UPDATE 
+  USING (auth.uid() = id);
+
+-- ==========================================
+-- 2. Tabela de Buscas no Maps (map_searches)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.map_searches (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  query TEXT NOT NULL,
+  total_results INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.map_searches ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own map searches" 
+  ON public.map_searches FOR SELECT 
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own map searches" 
+  ON public.map_searches FOR INSERT 
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own map searches" 
+  ON public.map_searches FOR UPDATE 
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own map searches" 
+  ON public.map_searches FOR DELETE 
+  USING (auth.uid() = user_id);
+
+-- ==========================================
+-- 3. Tabela de Leads Extraídos (scraped_leads)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.scraped_leads (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  search_id UUID NOT NULL REFERENCES public.map_searches(id) ON DELETE CASCADE,
+  title TEXT,
+  address TEXT,
+  phone TEXT,
+  website TEXT,
+  rating TEXT,
+  category TEXT,
+  url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.scraped_leads ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own scraped leads" 
+  ON public.scraped_leads FOR SELECT 
+  USING (
+    search_id IN (
+      SELECT id FROM public.map_searches WHERE user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can insert own scraped leads" 
+  ON public.scraped_leads FOR INSERT 
+  WITH CHECK (
+    search_id IN (
+      SELECT id FROM public.map_searches WHERE user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can update own scraped leads" 
+  ON public.scraped_leads FOR UPDATE 
+  USING (
+    search_id IN (
+      SELECT id FROM public.map_searches WHERE user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Users can delete own scraped leads" 
+  ON public.scraped_leads FOR DELETE 
+  USING (
+    search_id IN (
+      SELECT id FROM public.map_searches WHERE user_id = auth.uid()
+    )
+  );
+
+-- ==========================================
+-- 4. Tabela de Campanhas de Disparo (campaigns)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.campaigns (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  message TEXT NOT NULL,
+  contacts JSONB NOT NULL DEFAULT '[]'::jsonb,
+  delay_min INTEGER DEFAULT 5,
+  delay_max INTEGER DEFAULT 15,
+  status TEXT DEFAULT 'idle',
+  stats JSONB DEFAULT '{"sent": 0, "error": 0, "total": 0, "pending": 0}'::jsonb,
+  automation JSONB DEFAULT '{}'::jsonb,
+  scheduled_at TIMESTAMP WITH TIME ZONE,
+  sent_count INTEGER GENERATED ALWAYS AS ((stats->>'sent')::integer) STORED,
+  error_count INTEGER GENERATED ALWAYS AS ((stats->>'error')::integer) STORED,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.campaigns ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own campaigns" 
+  ON public.campaigns FOR SELECT 
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own campaigns" 
+  ON public.campaigns FOR INSERT 
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own campaigns" 
+  ON public.campaigns FOR UPDATE 
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own campaigns" 
+  ON public.campaigns FOR DELETE 
+  USING (auth.uid() = user_id);
+
+-- Trigger para criar o perfil automaticamente quando um usuário se cadastrar na Auth do Supabase
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, full_name, role, status)
+  VALUES (new.id, new.raw_user_meta_data->>'full_name', 'user', 'pending');
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Deletar a trigger antiga se existir
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
+-- Criar a trigger na auth.users
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();

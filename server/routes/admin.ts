@@ -1,7 +1,8 @@
 import express from 'express';
-import { supabaseAdmin } from '../utils/supabase';
+import { supabaseAdmin as rawSupabaseAdmin } from '../utils/supabase';
 import { User, AdminStats, PendingApproval } from '../types';
 
+const supabaseAdmin = rawSupabaseAdmin!;
 const router = express.Router();
 
 // Middleware para verificar se é admin

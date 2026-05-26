@@ -63,8 +63,8 @@ export default function AdminLogin() {
         <div className="bg-slate-800/50 backdrop-blur-xl border border-blue-500/20 rounded-3xl p-8 shadow-2xl">
           {/* Logo */}
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center font-black text-lg">
-              LS
+            <div className="w-12 h-12 bg-white/10 border border-white/20 rounded-xl p-1.5 flex items-center justify-center">
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
             </div>
             <div>
               <h1 className="text-2xl font-black">Admin Panel</h1>

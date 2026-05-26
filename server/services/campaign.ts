@@ -1,5 +1,5 @@
 import { Campaign, Contact } from '../types';
-import { whatsappService } from './whatsapp';
+import { whatsappManager } from './whatsapp';
 import { EventEmitter } from 'events';
 import { supabase } from '../utils/supabase';
 
@@ -9,10 +9,11 @@ export class CampaignService extends EventEmitter {
   private isStopped: boolean = false;
   private sentTimestamps: number[] = [];
   private scheduleTimeout: NodeJS.Timeout | null = null;
+  public userId: string;
 
-  constructor() {
+  constructor(userId: string) {
     super();
-    // Limpa timestamps antigos a cada hora
+    this.userId = userId;
     setInterval(() => this.cleanTimestamps(), 60 * 60 * 1000);
   }
 
@@ -32,35 +33,19 @@ export class CampaignService extends EventEmitter {
   }
 
   private checkDay(allowedDays: string[]): boolean {
-    const dayMap: Record<number, string> = {
-      0: 'Dom',
-      1: 'Seg',
-      2: 'Ter',
-      3: 'Qua',
-      4: 'Qui',
-      5: 'Sex',
-      6: 'Sab'
-    };
-    const todayStr = dayMap[new Date().getDay()];
-    return allowedDays.includes(todayStr);
+    const dayMap: Record<number, string> = { 0: 'Dom', 1: 'Seg', 2: 'Ter', 3: 'Qua', 4: 'Qui', 5: 'Sex', 6: 'Sab' };
+    return allowedDays.includes(dayMap[new Date().getDay()]);
   }
 
   private checkHour(start: string, end: string): boolean {
     const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
     const [startH, startM] = start.split(':').map(Number);
-    const startMinutes = startH * 60 + startM;
-
     const [endH, endM] = end.split(':').map(Number);
+    const startMinutes = startH * 60 + startM;
     const endMinutes = endH * 60 + endM;
-
-    if (startMinutes <= endMinutes) {
-      return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
-    } else {
-      // Caso o horário passe da meia noite (ex: 22:00 até 06:00)
-      return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
-    }
+    if (startMinutes <= endMinutes) return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+    return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
   }
 
   private async sleepSafely(durationMs: number): Promise<boolean> {
@@ -79,75 +64,23 @@ export class CampaignService extends EventEmitter {
     return !this.isStopped;
   }
 
-  // Persiste a campanha no banco de dados do Supabase
   private async saveCampaignToDb() {
     if (!supabase || !this.campaign) return;
     try {
-      const { error } = await supabase
-        .from('campaigns')
-        .upsert({
-          id: this.campaign.id || undefined,
-          message: this.campaign.message,
-          contacts: this.campaign.contacts,
-          delay_min: this.campaign.delayMin,
-          delay_max: this.campaign.delayMax,
-          status: this.campaign.status,
-          stats: this.campaign.stats,
-          automation: this.campaign.automation || {},
-          scheduled_at: this.campaign.scheduledAt || null
-        });
-
-      if (error) {
-        console.error('Erro ao persistir campanha no Supabase:', error.message);
-      }
+      await supabase.from('campaigns').upsert({
+        id: this.campaign.id || undefined,
+        user_id: this.userId,
+        message: this.campaign.message,
+        contacts: this.campaign.contacts,
+        delay_min: this.campaign.delayMin,
+        delay_max: this.campaign.delayMax,
+        status: this.campaign.status,
+        stats: this.campaign.stats,
+        automation: this.campaign.automation || {},
+        scheduled_at: this.campaign.scheduledAt || null
+      });
     } catch (err: any) {
       console.error('Erro de persistência no Supabase:', err.message);
-    }
-  }
-
-  // Carrega campanhas agendadas pendentes ao iniciar o servidor
-  public async resumeScheduledCampaigns() {
-    if (!supabase) return;
-    try {
-      console.log('Agendador: Buscando campanhas agendadas no Supabase...');
-      const { data, error } = await supabase
-        .from('campaigns')
-        .select('*')
-        .eq('status', 'scheduled');
-
-      if (error) throw error;
-      if (!data || data.length === 0) {
-        console.log('Agendador: Nenhuma campanha agendada pendente encontrada.');
-        return;
-      }
-
-      console.log(`Agendador: Encontradas ${data.length} campanhas pendentes. Reagendando...`);
-      for (const row of data) {
-        const camp: Campaign = {
-          id: row.id,
-          message: row.message,
-          contacts: row.contacts,
-          delayMin: row.delay_min,
-          delayMax: row.delay_max,
-          status: row.status as any,
-          stats: row.stats,
-          automation: row.automation,
-          scheduledAt: row.scheduled_at
-        };
-
-        const scheduleTime = new Date(row.scheduled_at).getTime();
-        // Se a hora do agendamento já passou, dispara imediatamente. Caso contrário, agenda.
-        if (scheduleTime <= Date.now()) {
-          console.log(`Agendador: Data do agendamento já passou para a campanha ${row.id}. Iniciando disparos agora.`);
-          // Dispara em background para não bloquear o loop de inicialização do servidor
-          this.startCampaign(camp).catch(err => console.error(err));
-        } else {
-          console.log(`Agendador: Campanha ${row.id} reagendada com sucesso para ${new Date(scheduleTime).toLocaleString('pt-BR')}`);
-          this.startCampaign(camp).catch(err => console.error(err));
-        }
-      }
-    } catch (err: any) {
-      console.error('Erro ao retomar campanhas agendadas:', err.message);
     }
   }
 
@@ -158,10 +91,7 @@ export class CampaignService extends EventEmitter {
     }
 
     this.campaign = campaign;
-    // Se a campanha não tiver ID (veio sem Supabase), geramos um uuid localmente
-    if (!this.campaign.id) {
-      this.campaign.id = crypto.randomUUID();
-    }
+    if (!this.campaign.id) this.campaign.id = crypto.randomUUID();
     
     this.isPaused = false;
     this.isStopped = false;
@@ -171,9 +101,8 @@ export class CampaignService extends EventEmitter {
       const delay = scheduledTime - Date.now();
       if (delay > 0) {
         this.campaign.status = 'scheduled';
-        this.emit('update', this.campaign);
-        this.emit('log', `⏰ Campanha agendada para começar em: ${new Date(scheduledTime).toLocaleString('pt-BR')}`);
-        
+        this.emit('update', this.userId, this.campaign);
+        this.emit('log', this.userId, `⏰ Campanha agendada para começar em: ${new Date(scheduledTime).toLocaleString('pt-BR')}`);
         await this.saveCampaignToDb();
 
         await new Promise<void>((resolve) => {
@@ -181,33 +110,31 @@ export class CampaignService extends EventEmitter {
             this.scheduleTimeout = null;
             resolve();
           }, delay);
-
-          const onStop = () => {
+          this.once('stopped', () => {
             if (this.scheduleTimeout) {
               clearTimeout(this.scheduleTimeout);
               this.scheduleTimeout = null;
             }
             resolve();
-          };
-          this.once('stopped', onStop);
+          });
         });
 
         if (this.isStopped) {
           this.campaign.status = 'stopped';
-          this.emit('update', this.campaign);
+          this.emit('update', this.userId, this.campaign);
           await this.saveCampaignToDb();
           return;
         }
-
-        this.emit('log', `🚀 Iniciando disparos da campanha agendada!`);
+        this.emit('log', this.userId, `🚀 Iniciando disparos da campanha agendada!`);
       }
     }
 
     this.campaign.status = 'running';
-    this.emit('update', this.campaign);
+    this.emit('update', this.userId, this.campaign);
     await this.saveCampaignToDb();
 
     let runSentCount = 0;
+    const userWhatsApp = whatsappManager.getService(this.userId);
 
     for (let i = 0; i < this.campaign.contacts.length; i++) {
       if (this.isStopped) break;
@@ -220,68 +147,41 @@ export class CampaignService extends EventEmitter {
       const contact = this.campaign.contacts[i];
       if (contact.status === 'sent') continue;
 
-      // Loop do agendador e limites de envio
       let passesValidation = false;
       while (!passesValidation) {
         if (this.isStopped) break;
         this.cleanTimestamps();
-
         const automation = this.campaign.automation;
         if (automation) {
-          // 1. Validar Dias Ativos
-          if (automation.diasAtivos && automation.diasAtivos.length > 0) {
-            if (!this.checkDay(automation.diasAtivos)) {
-              this.emit('log', `📅 Agendador: Hoje não é um dia ativo permitido para envios. Permitidos: ${automation.diasAtivos.join(', ')}. Aguardando...`);
-              const continued = await this.sleepSafely(30 * 1000); // Dorme 30s
-              if (!continued) break;
-              continue;
-            }
+          if (automation.diasAtivos?.length > 0 && !this.checkDay(automation.diasAtivos)) {
+            this.emit('log', this.userId, `📅 Fora do dia permitido. Aguardando...`);
+            if (!await this.sleepSafely(30000)) break;
+            continue;
           }
-
-          // 2. Validar Janela de Horário
-          if (automation.startTime && automation.endTime) {
-            if (!this.checkHour(automation.startTime, automation.endTime)) {
-              this.emit('log', `⏰ Agendador: Fora do horário permitido (${automation.startTime} às ${automation.endTime}). Aguardando...`);
-              const continued = await this.sleepSafely(30 * 1000); // Dorme 30s
-              if (!continued) break;
-              continue;
-            }
+          if (automation.startTime && automation.endTime && !this.checkHour(automation.startTime, automation.endTime)) {
+            this.emit('log', this.userId, `⏰ Fora do horário permitido. Aguardando...`);
+            if (!await this.sleepSafely(30000)) break;
+            continue;
           }
-
-          // 3. Validar Limite por Hora
-          if (automation.maxPerHour > 0) {
-            const sentLastHour = this.getSentCountLastHour();
-            if (sentLastHour >= automation.maxPerHour) {
-              this.emit('log', `⚠️ Limite: Limite de envios por hora atingido (${automation.maxPerHour} msgs). Aguardando liberação...`);
-              const continued = await this.sleepSafely(10 * 1000); // Dorme 10s
-              if (!continued) break;
-              continue;
-            }
+          if (automation.maxPerHour > 0 && this.getSentCountLastHour() >= automation.maxPerHour) {
+            this.emit('log', this.userId, `⚠️ Limite por hora atingido. Aguardando...`);
+            if (!await this.sleepSafely(10000)) break;
+            continue;
           }
-
-          // 4. Validar Limite Diário
-          if (automation.maxPerDay > 0) {
-            const sentLastDay = this.getSentCountLast24Hours();
-            if (sentLastDay >= automation.maxPerDay) {
-              this.emit('log', `🚫 Limite: Limite diário de envios atingido (${automation.maxPerDay} msgs). Aguardando novo ciclo...`);
-              const continued = await this.sleepSafely(10 * 1000); // Dorme 10s
-              if (!continued) break;
-              continue;
-            }
+          if (automation.maxPerDay > 0 && this.getSentCountLast24Hours() >= automation.maxPerDay) {
+            this.emit('log', this.userId, `🚫 Limite diário atingido. Aguardando...`);
+            if (!await this.sleepSafely(10000)) break;
+            continue;
           }
         }
-
         passesValidation = true;
       }
 
       if (this.isStopped) break;
 
       try {
-        const personalizedMessage = this.campaign.message
-          .replace(/{nome}/g, contact.name)
-          .replace(/{numero}/g, contact.number);
-
-        await whatsappService.sendMessage(contact.number, personalizedMessage);
+        const personalizedMessage = this.campaign.message.replace(/{nome}/g, contact.name).replace(/{numero}/g, contact.number);
+        await userWhatsApp.sendMessage(contact.number, personalizedMessage);
         
         contact.status = 'sent';
         this.campaign.stats.sent++;
@@ -295,60 +195,35 @@ export class CampaignService extends EventEmitter {
         this.campaign.stats.pending--;
       }
 
-      this.emit('update', this.campaign);
-      await this.saveCampaignToDb(); // Salva estado atualizado na fila a cada envio
+      this.emit('update', this.userId, this.campaign);
+      await this.saveCampaignToDb();
 
       if (this.isStopped) break;
 
-      // Proteção Anti-Ban: Pausa estendida a cada X mensagens
       const automation = this.campaign.automation;
       if (automation && automation.pauseEveryX > 0 && runSentCount % automation.pauseEveryX === 0 && i < this.campaign.contacts.length - 1) {
-        const pauseMin = automation.pauseDurationMin || 5;
-        const pauseMax = automation.pauseDurationMax || 15;
-        const pauseDurationMinutes = Math.floor(Math.random() * (pauseMax - pauseMin + 1) + pauseMin);
-        
-        this.emit('log', `🛡️ Proteção Anti-Ban: Limite parcial de ${automation.pauseEveryX} envios alcançado. Iniciando pausa de segurança de ${pauseDurationMinutes} minutos...`);
-        const continued = await this.sleepSafely(pauseDurationMinutes * 60 * 1000);
-        if (!continued) break;
+        const pauseDurationMinutes = Math.floor(Math.random() * ((automation.pauseDurationMax || 15) - (automation.pauseDurationMin || 5) + 1) + (automation.pauseDurationMin || 5));
+        this.emit('log', this.userId, `🛡️ Pausa Anti-Ban de ${pauseDurationMinutes} minutos...`);
+        if (!await this.sleepSafely(pauseDurationMinutes * 60 * 1000)) break;
       }
 
-      // Intervalo entre envios (Cooldown)
       if (i < this.campaign.contacts.length - 1 && !this.isStopped) {
         let delaySeconds = 0;
         if (automation) {
-          const baseDelay = Math.floor(
-            Math.random() * (automation.delayMax - automation.delayMin + 1) +
-              automation.delayMin
-          );
-          
-          const sentLastHour = this.getSentCountLastHour();
-          const fatigueSeconds = (automation.fatigue || 0) * sentLastHour;
-          delaySeconds = baseDelay + fatigueSeconds;
-
-          if (automation.randomVariation > 0) {
-            const variationPercent = (Math.random() * 2 - 1) * (automation.randomVariation / 100);
-            delaySeconds = delaySeconds * (1 + variationPercent);
-          }
-          delaySeconds = Math.max(1, delaySeconds);
+          delaySeconds = Math.floor(Math.random() * (automation.delayMax - automation.delayMin + 1) + automation.delayMin) + ((automation.fatigue || 0) * this.getSentCountLastHour());
+          if (automation.randomVariation > 0) delaySeconds *= (1 + (Math.random() * 2 - 1) * (automation.randomVariation / 100));
         } else {
-          delaySeconds = Math.floor(
-            Math.random() * (this.campaign.delayMax - this.campaign.delayMin + 1) +
-              this.campaign.delayMin
-          );
+          delaySeconds = Math.floor(Math.random() * (this.campaign.delayMax - this.campaign.delayMin + 1) + this.campaign.delayMin);
         }
+        delaySeconds = Math.max(1, delaySeconds);
 
-        this.emit('log', `Aguardando ${delaySeconds.toFixed(1)}s para o próximo envio...`);
-        const continued = await this.sleepSafely(delaySeconds * 1000);
-        if (!continued) break;
+        this.emit('log', this.userId, `Aguardando ${delaySeconds.toFixed(1)}s...`);
+        if (!await this.sleepSafely(delaySeconds * 1000)) break;
       }
     }
 
-    if (!this.isStopped) {
-      this.campaign.status = 'completed';
-    } else {
-      this.campaign.status = 'stopped';
-    }
-    this.emit('update', this.campaign);
+    this.campaign.status = this.isStopped ? 'stopped' : 'completed';
+    this.emit('update', this.userId, this.campaign);
     await this.saveCampaignToDb();
   }
 
@@ -356,7 +231,7 @@ export class CampaignService extends EventEmitter {
     this.isPaused = true;
     if (this.campaign) {
       this.campaign.status = 'paused';
-      this.emit('update', this.campaign);
+      this.emit('update', this.userId, this.campaign);
       this.saveCampaignToDb();
     }
   }
@@ -365,24 +240,60 @@ export class CampaignService extends EventEmitter {
     this.isPaused = false;
     if (this.campaign) {
       this.campaign.status = 'running';
-      this.emit('update', this.campaign);
+      this.emit('update', this.userId, this.campaign);
       this.saveCampaignToDb();
     }
   }
 
   public stop() {
     this.isStopped = true;
-    if (this.scheduleTimeout) {
-      clearTimeout(this.scheduleTimeout);
-      this.scheduleTimeout = null;
-    }
+    if (this.scheduleTimeout) clearTimeout(this.scheduleTimeout);
     if (this.campaign) {
       this.campaign.status = 'stopped';
-      this.emit('update', this.campaign);
+      this.emit('update', this.userId, this.campaign);
       this.saveCampaignToDb();
     }
     this.emit('stopped');
   }
 }
 
-export const campaignService = new CampaignService();
+class CampaignManager extends EventEmitter {
+  private services: Map<string, CampaignService> = new Map();
+
+  public getService(userId: string): CampaignService {
+    if (!this.services.has(userId)) {
+      const service = new CampaignService(userId);
+      service.on('update', (uid, camp) => this.emit('update', uid, camp));
+      service.on('log', (uid, msg) => this.emit('log', uid, msg));
+      this.services.set(userId, service);
+    }
+    return this.services.get(userId)!;
+  }
+
+  public async resumeAllScheduledCampaigns() {
+    if (!supabase) return;
+    try {
+      const { data, error } = await supabase.from('campaigns').select('*').eq('status', 'scheduled');
+      if (error || !data) return;
+
+      for (const row of data) {
+        if (!row.user_id) continue;
+        const camp: Campaign = {
+          id: row.id,
+          message: row.message,
+          contacts: row.contacts,
+          delayMin: row.delay_min,
+          delayMax: row.delay_max,
+          status: row.status as any,
+          stats: row.stats,
+          automation: row.automation,
+          scheduledAt: row.scheduled_at
+        };
+        const service = this.getService(row.user_id);
+        service.startCampaign(camp).catch(err => console.error(err));
+      }
+    } catch (err: any) {}
+  }
+}
+
+export const campaignManager = new CampaignManager();

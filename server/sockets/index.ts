@@ -1,47 +1,68 @@
 import { Server } from 'socket.io';
-import { whatsappService } from '../services/whatsapp';
-import { campaignService } from '../services/campaign';
+import { whatsappManager } from '../services/whatsapp';
+import { campaignManager } from '../services/campaign';
 import { Campaign } from '../types';
-import { mapsScraperService } from '../services/maps-scraper';
+import { mapsScraperManager } from '../services/maps-scraper';
 
 export const setupSockets = (io: Server) => {
   io.on('connection', (socket) => {
+    let currentUserId: string | null = null;
     console.log('Cliente conectado:', socket.id);
 
-    // Enviar status atual ao conectar
-    socket.emit('whatsapp-status', whatsappService.getStatus());
+    // Registro do Socket ao Usuário
+    socket.on('register', (userId: string) => {
+      console.log(`Socket ${socket.id} registrado para usuário: ${userId}`);
+      currentUserId = userId;
+      // Enviar status atual ao conectar
+      const waService = whatsappManager.getService(userId);
+      socket.emit('whatsapp-status', waService.getStatus());
+    });
 
-    // Handlers para eventos para poder removê-los no disconnect e evitar vazamento de memória
-    const onWhatsappStatus = (status: any) => {
-      socket.emit('whatsapp-status', status);
+    socket.on('get-whatsapp-status', () => {
+      if (currentUserId) {
+        const waService = whatsappManager.getService(currentUserId);
+        socket.emit('whatsapp-status', waService.getStatus());
+      }
+    });
+
+    // Handlers
+    const onWhatsappStatus = (uid: string, status: any) => {
+      if (uid === currentUserId) socket.emit('whatsapp-status', status);
     };
 
-    const onCampaignUpdate = (campaign: any) => {
-      socket.emit('campaign-update', campaign);
+    const onCampaignUpdate = (uid: string, campaign: any) => {
+      if (uid === currentUserId) socket.emit('campaign-update', campaign);
     };
 
-    const onCampaignLog = (message: any) => {
-      socket.emit('log', { message, timestamp: new Date() });
+    const onCampaignLog = (uid: string, message: any) => {
+      if (uid === currentUserId) socket.emit('log', { message, timestamp: new Date() });
     };
 
-    // Escutar eventos do WhatsApp Service
-    whatsappService.on('status', onWhatsappStatus);
+    const onScraperLog = (uid: string, msg: string) => {
+      if (uid === currentUserId) socket.emit('maps-log', { message: msg, timestamp: new Date() });
+    };
 
-    // Escutar eventos da Campanha
-    campaignService.on('update', onCampaignUpdate);
-    campaignService.on('log', onCampaignLog);
+    const onScraperStatus = (uid: string, status: string) => {
+      if (uid === currentUserId) socket.emit('maps-status', status);
+    };
 
-    // Escutar eventos do Scraper
-    const onScraperLog = (msg: string) => socket.emit('maps-log', { message: msg, timestamp: new Date() });
-    const onScraperStatus = (status: string) => socket.emit('maps-status', status);
-    const onScraperItem = (data: any) => socket.emit('maps-item-scraped', data);
+    const onScraperItem = (uid: string, data: any) => {
+      if (uid === currentUserId) socket.emit('maps-item-scraped', data);
+    };
 
-    mapsScraperService.on('log', onScraperLog);
-    mapsScraperService.on('status', onScraperStatus);
-    mapsScraperService.on('item-scraped', onScraperItem);
+    // Listeners Globais
+    whatsappManager.on('status', onWhatsappStatus);
+    campaignManager.on('update', onCampaignUpdate);
+    campaignManager.on('log', onCampaignLog);
+    mapsScraperManager.on('log', onScraperLog);
+    mapsScraperManager.on('status', onScraperStatus);
+    mapsScraperManager.on('item-scraped', onScraperItem);
 
+    // Comandos do Frontend
     socket.on('start-campaign', async (campaign: Campaign) => {
+      if (!currentUserId) return socket.emit('error', 'Usuário não registrado no socket');
       try {
+        const campaignService = campaignManager.getService(currentUserId);
         await campaignService.startCampaign(campaign);
       } catch (error: any) {
         socket.emit('error', error.message);
@@ -49,20 +70,24 @@ export const setupSockets = (io: Server) => {
     });
 
     socket.on('pause-campaign', () => {
-      campaignService.pause();
+      if (!currentUserId) return;
+      campaignManager.getService(currentUserId).pause();
     });
 
     socket.on('resume-campaign', () => {
-      campaignService.resume();
+      if (!currentUserId) return;
+      campaignManager.getService(currentUserId).resume();
     });
 
     socket.on('stop-campaign', () => {
-      campaignService.stop();
+      if (!currentUserId) return;
+      campaignManager.getService(currentUserId).stop();
     });
 
     socket.on('get-groups', async (callback) => {
+      if (!currentUserId) return callback && callback({ success: false, error: 'Não registrado' });
       try {
-        const groups = await whatsappService.getGroups();
+        const groups = await whatsappManager.getService(currentUserId).getGroups();
         if(callback) callback({ success: true, data: groups });
       } catch (error: any) {
         if(callback) callback({ success: false, error: error.message });
@@ -70,8 +95,9 @@ export const setupSockets = (io: Server) => {
     });
 
     socket.on('get-group-members', async (groupId: string, callback) => {
+      if (!currentUserId) return callback && callback({ success: false, error: 'Não registrado' });
       try {
-        const members = await whatsappService.getGroupMembers(groupId);
+        const members = await whatsappManager.getService(currentUserId).getGroupMembers(groupId);
         if(callback) callback({ success: true, data: members });
       } catch (error: any) {
         if(callback) callback({ success: false, error: error.message });
@@ -79,12 +105,14 @@ export const setupSockets = (io: Server) => {
     });
 
     socket.on('whatsapp-logout', async () => {
-      await whatsappService.logout();
+      if (!currentUserId) return;
+      await whatsappManager.getService(currentUserId).logout();
     });
 
     socket.on('start-maps-scrape', async ({ query, limit, onlyCellphones, excludeFixedPhones, onlyWithInstagramOrWhatsapp }) => {
+      if (!currentUserId) return socket.emit('error', 'Não registrado');
       try {
-        await mapsScraperService.startScrape({
+        await mapsScraperManager.getService(currentUserId).startScrape({
           query,
           limit,
           onlyCellphones,
@@ -97,17 +125,18 @@ export const setupSockets = (io: Server) => {
     });
 
     socket.on('stop-maps-scrape', () => {
-      mapsScraperService.stop();
+      if (!currentUserId) return;
+      mapsScraperManager.getService(currentUserId).stop();
     });
 
     socket.on('disconnect', () => {
       console.log('Cliente desconectado:', socket.id);
-      whatsappService.off('status', onWhatsappStatus);
-      campaignService.off('update', onCampaignUpdate);
-      campaignService.off('log', onCampaignLog);
-      mapsScraperService.off('log', onScraperLog);
-      mapsScraperService.off('status', onScraperStatus);
-      mapsScraperService.off('item-scraped', onScraperItem);
+      whatsappManager.off('status', onWhatsappStatus);
+      campaignManager.off('update', onCampaignUpdate);
+      campaignManager.off('log', onCampaignLog);
+      mapsScraperManager.off('log', onScraperLog);
+      mapsScraperManager.off('status', onScraperStatus);
+      mapsScraperManager.off('item-scraped', onScraperItem);
     });
   });
 };

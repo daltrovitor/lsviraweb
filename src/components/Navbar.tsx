@@ -90,9 +90,8 @@ export default function Navbar({ activeTab, setActiveTab, onLogout }: NavbarProp
             
             {/* Logo & Brand */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-navy-900 flex items-center justify-center shadow-md overflow-hidden p-1">
-                <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                <span className="absolute text-gold-400 font-black text-sm tracking-tighter" style={{ mixBlendMode: 'difference' }}>LS</span>
+              <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shadow-sm overflow-hidden p-1.5">
+                <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
               </div>
               <div className="hidden md:block">
                 <h1 className="text-lg font-black text-navy-950 flex items-center gap-1.5 leading-none">
@@ -163,7 +162,7 @@ export default function Navbar({ activeTab, setActiveTab, onLogout }: NavbarProp
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs font-bold text-navy-950">{userProfile?.full_name?.split(' ')[0] || 'Usuário'}</span>
-                  <span className="text-[10px] text-slate-500 leading-none">Conta Pro</span>
+                  <span className="text-[10px] text-slate-500 leading-none">Conta MVP</span>
                 </div>
                 
                 {/* Dropdown Menu */}

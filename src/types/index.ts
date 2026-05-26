@@ -64,3 +64,34 @@ export interface ScrapeOptions {
   excludeFixedPhones?: boolean;
   onlyWithInstagramOrWhatsapp?: boolean;
 }
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  company?: string;
+  phone?: string;
+  role: 'user' | 'admin';
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+  last_access: string;
+}
+
+export interface PendingApproval {
+  id: string;
+  email: string;
+  name: string;
+  company?: string;
+  phone?: string;
+  created_at: string;
+  hours_pending: number;
+}
+
+export interface AdminStats {
+  total_users: number;
+  pending_approvals: number;
+  total_campaigns_today: number;
+  total_contacts_today: number;
+  total_sent_today: number;
+  pending_approvals_list: PendingApproval[];
+}

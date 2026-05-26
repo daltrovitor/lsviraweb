@@ -1,7 +1,8 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
-import { supabaseAdmin } from '../utils/supabase';
+import { supabaseAdmin as rawSupabaseAdmin } from '../utils/supabase';
 
+const supabaseAdmin = rawSupabaseAdmin!;
 const router = express.Router();
 
 // Registro de novo usuário (pendente de aprovação)

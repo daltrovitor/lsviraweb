@@ -162,7 +162,9 @@ export default function AdminDashboard() {
       <nav className="bg-blue-900/20 backdrop-blur-md border-b border-blue-500/20 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center font-black">LS</div>
+            <div className="w-10 h-10 bg-white/10 border border-white/20 rounded-lg p-1.5 flex items-center justify-center font-black">
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
+            </div>
             <div>
               <h1 className="text-xl font-black">Admin Dashboard</h1>
               <p className="text-xs text-slate-400">LeadScrap</p>

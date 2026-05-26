@@ -143,10 +143,8 @@ export default function Auth({ onSession }: AuthProps) {
 
           {/* Logo & Header */}
           <div className="flex flex-col mb-2">
-            <div className="w-12 h-12 relative mb-5 rounded-xl bg-navy-900 flex items-center justify-center shadow-lg shadow-navy-900/20 overflow-hidden">
-              {/* Fallback caso a logo não exista */}
-              <img src="/logo.png" alt="Logo" className="object-contain w-8 h-8 opacity-90" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-              <span className="absolute text-gold-400 font-black text-xl tracking-tighter" style={{ mixBlendMode: 'difference' }}>LS</span>
+            <div className="w-14 h-14 relative mb-4">
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-contain drop-shadow-sm" />
             </div>
             <h1 className="text-3xl font-black text-navy-950 tracking-tight flex items-center gap-2">
               LeadScrap
@@ -249,7 +247,7 @@ export default function Auth({ onSession }: AuthProps) {
             <button
               type="submit"
               disabled={loading}
-              className="mt-6 w-full py-4 rounded-xl bg-navy-900 hover:bg-navy-800 disabled:opacity-50 text-white font-black text-sm transition-all hover:shadow-lg hover:shadow-navy-900/20 flex items-center justify-center gap-2 active:scale-[0.98]"
+              className="mt-6 w-full py-4 rounded-xl bg-navy-900 hover:bg-v-blue-600 disabled:opacity-50 text-white font-black text-sm transition-all hover:shadow-lg hover:shadow-navy-900/20 flex items-center justify-center gap-2 active:scale-[0.97]"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />

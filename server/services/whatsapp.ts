@@ -2,7 +2,6 @@ import makeWASocket, {
   DisconnectReason,
   useMultiFileAuthState,
   fetchLatestBaileysVersion,
-  delay,
   WASocket,
   ConnectionState,
 } from '@whiskeysockets/baileys';
@@ -13,7 +12,6 @@ import pino from 'pino';
 import { WhatsAppStatus } from '../types';
 import { EventEmitter } from 'events';
 
-// Implementação customizada e leve do makeInMemoryStore compatível com Baileys v7
 const makeInMemoryStore = (config?: { logger?: any }) => {
   const contacts: Record<string, any> = {};
 
@@ -28,59 +26,39 @@ const makeInMemoryStore = (config?: { logger?: any }) => {
             Object.assign(contacts, data.contacts || data || {});
           }
         }
-      } catch (e) {
-        // Ignora erros na leitura
-      }
+      } catch (e) {}
     },
     writeToFile(filePath: string) {
       try {
         fs.writeFileSync(filePath, JSON.stringify({ contacts }, null, 2), 'utf8');
-      } catch (e) {
-        // Ignora erros na escrita
-      }
+      } catch (e) {}
     },
     bind(ev: any) {
       ev.on('contacts.upsert', (newContacts: any[]) => {
         for (const contact of newContacts) {
           if (contact && contact.id) {
-            contacts[contact.id] = {
-              ...(contacts[contact.id] || {}),
-              ...contact,
-            };
+            contacts[contact.id] = { ...(contacts[contact.id] || {}), ...contact };
           }
         }
       });
-
       ev.on('contacts.update', (updates: any[]) => {
         for (const update of updates) {
           if (update && update.id) {
-            contacts[update.id] = {
-              ...(contacts[update.id] || {}),
-              ...update,
-            };
+            contacts[update.id] = { ...(contacts[update.id] || {}), ...update };
           }
         }
       });
-
       ev.on('messages.upsert', ({ messages }: { messages: any[] }) => {
         if (!messages) return;
         for (const msg of messages) {
           if (!msg || msg.key?.fromMe) continue;
-          
           const jid = msg.key?.participant || msg.key?.remoteJid;
           if (!jid) continue;
-
           const pushName = msg.pushName;
           if (pushName) {
-            if (!contacts[jid]) {
-              contacts[jid] = { id: jid };
-            }
-            if (!contacts[jid].name) {
-              contacts[jid].name = pushName;
-            }
-            if (!contacts[jid].notify) {
-              contacts[jid].notify = pushName;
-            }
+            if (!contacts[jid]) contacts[jid] = { id: jid };
+            if (!contacts[jid].name) contacts[jid].name = pushName;
+            if (!contacts[jid].notify) contacts[jid].notify = pushName;
           }
         }
       });
@@ -92,32 +70,30 @@ const logger = pino({ level: 'silent' });
 
 export class WhatsAppService extends EventEmitter {
   private socket: WASocket | null = null;
-  private status: WhatsAppStatus = {
-    connected: false,
-    state: 'disconnected',
-  };
+  private status: WhatsAppStatus = { connected: false, state: 'disconnected' };
   private sessionPath: string;
+  private storePath: string;
   private store: any;
+  public userId: string;
 
-  constructor(sessionPath: string = './auth_info_baileys') {
+  constructor(userId: string) {
     super();
-    this.sessionPath = path.resolve(sessionPath);
+    this.userId = userId;
+    const baseDir = path.resolve('./sessions');
+    if (!fs.existsSync(baseDir)) fs.mkdirSync(baseDir, { recursive: true });
     
-    // Inicializa o store de contatos e conversas
+    this.sessionPath = path.join(baseDir, `auth_info_${userId}`);
+    this.storePath = path.join(baseDir, `store_${userId}.json`);
+    
     this.store = makeInMemoryStore({ logger });
     try {
-      this.store.readFromFile('./baileys_store.json');
-    } catch (e) {
-      // Ignora se o arquivo de persistência não existir ainda
-    }
+      this.store.readFromFile(this.storePath);
+    } catch (e) {}
 
-    // Persiste os dados na memória em arquivo a cada 10 segundos
     setInterval(() => {
       try {
-        this.store.writeToFile('./baileys_store.json');
-      } catch (e) {
-        // Ignora falhas de escrita
-      }
+        if (this.socket) this.store.writeToFile(this.storePath);
+      } catch (e) {}
     }, 10000);
   }
 
@@ -133,7 +109,6 @@ export class WhatsAppService extends EventEmitter {
       browser: ['Disparador', 'Chrome', '1.0.0'],
     });
 
-    // Vincula o store ao emissor de eventos do socket para atualizar contatos/conversas automaticamente
     this.store.bind(this.socket.ev);
 
     this.socket.ev.on('connection.update', (update: Partial<ConnectionState>) => {
@@ -141,13 +116,13 @@ export class WhatsAppService extends EventEmitter {
 
       if (qr) {
         this.status = { ...this.status, state: 'qrcode', qr };
-        this.emit('status', this.status);
+        this.emit('status', this.userId, this.status);
       }
 
       if (connection === 'close') {
         const shouldReconnect = (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
         this.status = { connected: false, state: 'disconnected' };
-        this.emit('status', this.status);
+        this.emit('status', this.userId, this.status);
         
         if (shouldReconnect) {
           this.init();
@@ -165,12 +140,11 @@ export class WhatsAppService extends EventEmitter {
           number: user?.id.split(':')[0],
           name: user?.name,
         };
-        this.emit('status', this.status);
+        this.emit('status', this.userId, this.status);
       }
     });
 
     this.socket.ev.on('creds.update', saveCreds);
-
     return this.socket;
   }
 
@@ -179,27 +153,18 @@ export class WhatsAppService extends EventEmitter {
   }
 
   public async sendMessage(number: string, message: string) {
-    const socket = this.socket;
-    if (!socket || !this.status.connected) {
-      throw new Error('WhatsApp not connected');
-    }
+    if (!this.socket || !this.status.connected) throw new Error('WhatsApp not connected');
 
     let jid = number.includes('@') ? number : '';
-    
     if (!jid) {
       const cleanNumber = number.replace(/\D/g, '');
       if (cleanNumber.startsWith('1') && cleanNumber.length >= 15) {
         jid = `${cleanNumber}@lid`;
       } else {
         try {
-          const onWhatsAppResult = await socket.onWhatsApp(cleanNumber);
+          const onWhatsAppResult = await this.socket.onWhatsApp(cleanNumber);
           if (onWhatsAppResult && onWhatsAppResult.length > 0) {
-            const result = onWhatsAppResult[0];
-            if (result && result.exists) {
-              jid = result.jid;
-            } else {
-              jid = `${cleanNumber}@s.whatsapp.net`;
-            }
+            jid = onWhatsAppResult[0].exists ? onWhatsAppResult[0].jid : `${cleanNumber}@s.whatsapp.net`;
           } else {
             jid = `${cleanNumber}@s.whatsapp.net`;
           }
@@ -208,17 +173,12 @@ export class WhatsAppService extends EventEmitter {
         }
       }
     }
-
-    await socket.sendMessage(jid, { text: message });
+    await this.socket.sendMessage(jid, { text: message });
   }
 
   public async getGroups() {
-    const socket = this.socket;
-    if (!socket || !this.status.connected) {
-      throw new Error('WhatsApp not connected');
-    }
-    
-    const groups = await socket.groupFetchAllParticipating();
+    if (!this.socket || !this.status.connected) throw new Error('WhatsApp not connected');
+    const groups = await this.socket.groupFetchAllParticipating();
     return Object.values(groups).map(group => ({
       id: group.id,
       name: group.subject,
@@ -227,14 +187,9 @@ export class WhatsAppService extends EventEmitter {
   }
 
   public async getGroupMembers(groupId: string) {
-    const socket = this.socket;
-    if (!socket || !this.status.connected) {
-      throw new Error('WhatsApp not connected');
-    }
-
-    const group = await socket.groupMetadata(groupId);
+    if (!this.socket || !this.status.connected) throw new Error('WhatsApp not connected');
+    const group = await this.socket.groupMetadata(groupId);
     return group.participants.map(p => {
-      // Tenta buscar o contato no cache do store para recuperar o nome exibido no WhatsApp (PushName) ou salvo
       const contact = this.store?.contacts[p.id];
       return {
         id: p.id,
@@ -252,9 +207,30 @@ export class WhatsAppService extends EventEmitter {
         fs.rmSync(this.sessionPath, { recursive: true, force: true });
       }
       this.status = { connected: false, state: 'disconnected' };
-      this.emit('status', this.status);
+      this.emit('status', this.userId, this.status);
     }
   }
 }
 
-export const whatsappService = new WhatsAppService();
+class WhatsAppManager extends EventEmitter {
+  private services: Map<string, WhatsAppService> = new Map();
+
+  public getService(userId: string): WhatsAppService {
+    if (!this.services.has(userId)) {
+      const service = new WhatsAppService(userId);
+      
+      // Propagate events from the individual service to the global manager listener
+      service.on('status', (uid, status) => {
+        this.emit('status', uid, status);
+      });
+
+      // Start connection immediately
+      service.init().catch(err => console.error(`Error init whatsapp for ${userId}:`, err));
+      
+      this.services.set(userId, service);
+    }
+    return this.services.get(userId)!;
+  }
+}
+
+export const whatsappManager = new WhatsAppManager();

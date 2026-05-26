@@ -16,8 +16,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={`${inter.variable} ${outfit.variable}`}>
-      <body className="min-h-screen premium-bg text-navy-950 antialiased selection:bg-gold-400/30 selection:text-navy-900 overflow-x-hidden font-sans">
+    <html lang="pt-BR" className={`${inter.variable} ${outfit.variable}`} suppressHydrationWarning>
+      <body className="min-h-screen premium-bg text-navy-950 antialiased selection:bg-gold-400/30 selection:text-navy-900 overflow-x-hidden font-sans" suppressHydrationWarning>
         {children}
       </body>
     </html>
