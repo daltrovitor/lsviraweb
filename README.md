@@ -7,11 +7,13 @@ LeadScrap é uma plataforma completa para disparar mensagens em massa no WhatsAp
 ### Fluxo Principal
 
 ```
-Landing Page (Cadastro)
+Login Principal (/) - Dashboard Login
     ↓
-Aguarda Aprovação (Admin Dashboard)
+Dashboard Principal (/dashboard)
     ↓
-Dashboard Principal (Disparos)
+Admin Dashboard (/admin/dashboard) - Gestão de Leads
+    ↓
+Landing Page (/landing) - Captura de Leads
 ```
 
 ## 🏗️ Estrutura do Projeto
@@ -20,12 +22,17 @@ Dashboard Principal (Disparos)
 disparador/
 ├── src/
 │   ├── app/
-│   │   ├── page.tsx              # Dashboard principal
-│   │   ├── layout.tsx             # Layout global
-│   │   ├── landing/page.tsx        # Landing page com cadastro
+│   │   ├── page.tsx              # Login principal (Admin)
+│   │   ├── layout.tsx             # Layout global com Toaster
+│   │   ├── landing/page.tsx        # Landing page de captura de leads
 │   │   └── admin/
-│   │       ├── login/page.tsx      # Admin login
-│   │       └── dashboard/page.tsx  # Admin dashboard
+│   │       ├── login/page.tsx      # Admin login (subdomain)
+│   │       ├── dashboard/
+│   │       │   ├── layout.tsx      # RBAC middleware
+│   │       │   └── page.tsx        # Admin dashboard de leads
+│   │       └── api/
+│   │           └── landing/
+│   │               └── submit-lead/ # API para cadastro de leads
 │   ├── components/
 │   ├── services/
 │   │   └── socket.ts              # Socket.io client
@@ -92,30 +99,35 @@ npm run dev
 npm run dev  # O script concorrente já inicia ambos
 
 # Acessar:
-# - Landing: http://localhost:3000/landing
-# - Dashboard: http://localhost:3000
-# - Admin: http://localhost:3000/admin/login
+# - Login Principal: http://localhost:3000
+# - Dashboard Principal: http://localhost:3000/dashboard
+# - Landing Page: http://localhost:3000/landing
+# - Admin Dashboard: http://localhost:3000/admin/dashboard
+# - Admin Login (subdomain): http://adminls.localhost:3000/admin/login
 ```
 
 ## 🔐 Sistema de Autenticação
 
-### Registro (Landing Page)
+### Login Principal (Dashboard)
 
-1. Usuário preenche formulário
-2. Conta criada com `status: 'pending'`
-3. Email enviado (configurável)
+1. Usuário faz login na página principal `/`
+2. Autenticação via Supabase
+3. Redirecionamento para `/dashboard`
 
-### Aprovação (Admin)
+### Captura de Leads (Landing Page)
 
-1. Admin faz login
-2. Vê lista de usuários pendentes
-3. Aprova ou rejeita
+1. Usuário acessa `/landing`
+2. Preenche formulário (Nome, Email, WhatsApp)
+3. Lead salvo na tabela `landing_leads`
+4. Modal instrui contato via WhatsApp
 
-### Login
+### Gestão de Leads (Admin Dashboard)
 
-1. Usuário faz login apenas se status = `'approved'`
-2. Recebe token JWT
-3. Pode acessar dashboard
+1. Admin faz login em `/admin/login` (ou subdomain adminls)
+2. Verificação de role='admin' via Supabase
+3. Visualiza leads da landing page
+4. Atualiza status (pending, contacted, converted, lost)
+5. Acesso direto via WhatsApp para cada lead
 
 ## 📊 Schema do Banco de Dados
 

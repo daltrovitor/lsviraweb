@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   full_name TEXT,
   company TEXT,
   phone TEXT,
-  role TEXT DEFAULT 'user',
+  role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin')),
   status TEXT DEFAULT 'pending',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   last_access TIMESTAMP WITH TIME ZONE
@@ -145,6 +145,67 @@ CREATE POLICY "Users can update own campaigns"
 CREATE POLICY "Users can delete own campaigns" 
   ON public.campaigns FOR DELETE 
   USING (auth.uid() = user_id);
+
+-- ==========================================
+-- 5. Tabela de Leads da Landing Page (landing_leads)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.landing_leads (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  full_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  whatsapp TEXT NOT NULL,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'contacted', 'converted', 'lost')),
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.landing_leads ENABLE ROW LEVEL SECURITY;
+
+-- Admin can view all leads
+CREATE POLICY "Admins can view all leads" 
+  ON public.landing_leads FOR SELECT 
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
+    )
+  );
+
+-- Admin can insert leads
+CREATE POLICY "Admins can insert leads" 
+  ON public.landing_leads FOR INSERT 
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
+    )
+  );
+
+-- Admin can update leads
+CREATE POLICY "Admins can update leads" 
+  ON public.landing_leads FOR UPDATE 
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
+    )
+  );
+
+-- Admin can delete leads
+CREATE POLICY "Admins can delete leads" 
+  ON public.landing_leads FOR DELETE 
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE profiles.id = auth.uid() AND profiles.role = 'admin'
+    )
+  );
+
+-- Public can insert leads (for landing page form)
+CREATE POLICY "Public can insert leads" 
+  ON public.landing_leads FOR INSERT 
+  WITH CHECK (true);
 
 -- Trigger para criar o perfil automaticamente quando um usuário se cadastrar na Auth do Supabase
 CREATE OR REPLACE FUNCTION public.handle_new_user()

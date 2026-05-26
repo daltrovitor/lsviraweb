@@ -2,261 +2,192 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, XCircle, Clock, Users, MessageSquare, TrendingUp, LogOut, Loader2, AlertCircle } from 'lucide-react';
-import { AdminStats, PendingApproval } from '@/types';
+import { CheckCircle2, XCircle, Users, MessageSquare, TrendingUp, LogOut, Loader2, AlertCircle, Phone, Mail, Calendar, Clock, MessageCircle, Shield } from 'lucide-react';
+import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
+
+type Lead = {
+  id: string;
+  full_name: string;
+  email: string;
+  whatsapp: string;
+  status: 'pending' | 'contacted' | 'converted' | 'lost';
+  notes: string;
+  created_at: string;
+  updated_at: string;
+};
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState<AdminStats | null>(null);
-  const [users, setUsers] = useState<any[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'approvals' | 'users'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'leads'>('overview');
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  useEffect(() => {
-    const storedToken = localStorage.getItem('admin_token');
-    const storedUserId = localStorage.getItem('user_id');
+  const fetchLeads = async () => {
+    if (!supabase) return;
     
-    if (!storedToken || !storedUserId) {
-      window.location.href = '/admin/login';
-      return;
-    }
-
-    setToken(storedToken);
-    setUserId(storedUserId);
-    fetchStats(storedToken, storedUserId);
-  }, []);
-
-  const fetchStats = async (token: string, userId: string) => {
     try {
-      const response = await fetch('/api/admin/stats', {
-        headers: {
-          'authorization': `Bearer ${token}`,
-          'x-user-id': userId
-        }
-      });
+      const { data, error } = await supabase
+        .from('landing_leads')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      if (!response.ok) {
-        if (response.status === 403 || response.status === 401) {
-          localStorage.removeItem('admin_token');
-          localStorage.removeItem('user_id');
-          window.location.href = '/admin/login';
-          return;
-        }
-      }
-
-      const data = await response.json();
-      setStats(data);
-
-      if (activeTab === 'users') {
-        fetchUsers(token, userId);
-      }
+      if (error) throw error;
+      setLeads(data || []);
     } catch (error) {
-      console.error('Erro ao buscar estatísticas:', error);
+      console.error('Erro ao buscar leads:', error);
+      toast.error('Erro ao carregar leads');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchUsers = async (token: string, userId: string) => {
-    try {
-      const response = await fetch('/api/admin/users', {
-        headers: {
-          'authorization': `Bearer ${token}`,
-          'x-user-id': userId
-        }
-      });
+  useEffect(() => {
+    fetchLeads();
+  }, []);
 
-      const data = await response.json();
-      if (data.users) {
-        setUsers(data.users);
-      }
-    } catch (error) {
-      console.error('Erro ao buscar usuários:', error);
-    }
-  };
-
-  const handleApprove = async (userId: string) => {
-    if (!token) return;
+  const handleStatusChange = async (leadId: string, newStatus: Lead['status']) => {
+    if (!supabase) return;
     
-    setProcessingId(userId);
+    setProcessingId(leadId);
     try {
-      const response = await fetch(`/api/admin/approve-user/${userId}`, {
-        method: 'POST',
-        headers: {
-          'authorization': `Bearer ${token}`,
-          'x-user-id': userId || ''
-        }
-      });
+      const { error } = await supabase
+        .from('landing_leads')
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', leadId);
 
-      if (response.ok) {
-        setMessage({ type: 'success', text: 'Usuário aprovado!' });
-        setTimeout(() => {
-          if (token && userId) fetchStats(token, userId);
-        }, 1000);
-      } else {
-        setMessage({ type: 'error', text: 'Erro ao aprovar usuário' });
-      }
+      if (error) throw error;
+      
+      toast.success('Status atualizado com sucesso');
+      fetchLeads();
     } catch (error) {
-      setMessage({ type: 'error', text: 'Erro ao conectar' });
+      console.error('Erro ao atualizar status:', error);
+      toast.error('Erro ao atualizar status');
     } finally {
       setProcessingId(null);
     }
   };
 
-  const handleReject = async (userId: string) => {
-    if (!token) return;
-
-    const reason = prompt('Motivo da rejeição (opcional):');
-    if (reason === null) return;
-
-    setProcessingId(userId);
-    try {
-      const response = await fetch(`/api/admin/reject-user/${userId}`, {
-        method: 'POST',
-        headers: {
-          'authorization': `Bearer ${token}`,
-          'x-user-id': userId || '',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ reason })
-      });
-
-      if (response.ok) {
-        setMessage({ type: 'success', text: 'Usuário rejeitado' });
-        setTimeout(() => {
-          if (token && userId) fetchStats(token, userId);
-        }, 1000);
-      } else {
-        setMessage({ type: 'error', text: 'Erro ao rejeitar usuário' });
-      }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Erro ao conectar' });
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('admin_token');
-    localStorage.removeItem('user_id');
+  const handleLogout = async () => {
+    if (supabase) await supabase.auth.signOut();
     window.location.href = '/admin/login';
+  };
+
+  const stats = {
+    total: leads.length,
+    pending: leads.filter(l => l.status === 'pending').length,
+    contacted: leads.filter(l => l.status === 'contacted').length,
+    converted: leads.filter(l => l.status === 'converted').length,
+    lost: leads.filter(l => l.status === 'lost').length,
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-blue-400 mx-auto mb-4" />
-          <p className="text-white font-bold">Carregando painel...</p>
+          <Loader2 className="w-12 h-12 animate-spin text-blue-500 mx-auto mb-4" />
+          <p className="text-slate-900 font-bold">Carregando painel...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 to-slate-900 text-white">
+    <div className="min-h-screen bg-white text-slate-900">
+      {/* Animated Background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+      </div>
+
       {/* Header */}
-      <nav className="bg-blue-900/20 backdrop-blur-md border-b border-blue-500/20 sticky top-0 z-50">
+      <nav className="bg-white/80 backdrop-blur-xl border-b border-slate-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/10 border border-white/20 rounded-lg p-1.5 flex items-center justify-center font-black">
-              <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <Shield size={20} className="text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-black">Admin Dashboard</h1>
-              <p className="text-xs text-slate-400">LeadScrap</p>
+              <h1 className="text-xl font-black text-slate-900">Admin Dashboard</h1>
+              <p className="text-xs text-slate-500 font-medium">LeadScrap</p>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-4 py-2 rounded-lg transition-all"
+            className="flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-4 py-2 rounded-xl transition-all font-semibold"
           >
             <LogOut size={16} />
-            <span className="text-sm font-bold">Sair</span>
+            <span className="text-sm">Sair</span>
           </button>
         </div>
       </nav>
 
-      {/* Message */}
-      <AnimatePresence>
-        {message && (
-          <motion.div
-            initial={{ y: -100 }}
-            animate={{ y: 0 }}
-            exit={{ y: -100 }}
-            className={`fixed top-20 left-1/2 transform -translate-x-1/2 z-40 px-6 py-3 rounded-lg font-bold flex items-center gap-2 ${
-              message.type === 'success'
-                ? 'bg-green-500/10 text-green-200 border border-green-500/30'
-                : 'bg-red-500/10 text-red-200 border border-red-500/30'
-            }`}
-          >
-            {message.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-            {message.text}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 relative z-10">
         {/* Tabs */}
-        <div className="flex gap-4 mb-8 border-b border-blue-500/20 pb-4">
-          {(['overview', 'approvals', 'users'] as const).map((tab) => (
+        <div className="flex gap-4 mb-8 border-b border-slate-200 pb-4">
+          {(['overview', 'leads'] as const).map((tab) => (
             <button
               key={tab}
-              onClick={() => {
-                setActiveTab(tab);
-                if (tab === 'users' && token && userId) {
-                  fetchUsers(token, userId);
-                }
-              }}
-              className={`px-6 py-2 rounded-lg font-bold transition-all ${
+              onClick={() => setActiveTab(tab)}
+              className={`px-6 py-2 rounded-xl font-bold transition-all ${
                 activeTab === tab
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-slate-700/30 text-slate-300 hover:bg-slate-700/50'
+                  ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
               {tab === 'overview' && '📊 Visão Geral'}
-              {tab === 'approvals' && '⏳ Aprovações'}
-              {tab === 'users' && '👥 Usuários'}
+              {tab === 'leads' && '👥 Leads'}
             </button>
           ))}
         </div>
 
         {/* Overview Tab */}
-        {activeTab === 'overview' && stats && (
+        {activeTab === 'overview' && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="space-y-6"
           >
             {/* Stats Grid */}
-            <div className="grid md:grid-cols-4 gap-6">
+            <div className="grid md:grid-cols-5 gap-6">
               {[
                 {
                   icon: Users,
-                  label: 'Total de Usuários',
-                  value: stats.total_users,
-                  color: 'from-blue-500 to-blue-600'
+                  label: 'Total de Leads',
+                  value: stats.total,
+                  color: 'from-blue-500 to-blue-600',
+                  bg: 'bg-blue-50'
                 },
                 {
                   icon: Clock,
                   label: 'Pendentes',
-                  value: stats.pending_approvals,
-                  color: 'from-yellow-500 to-yellow-600'
+                  value: stats.pending,
+                  color: 'from-amber-500 to-amber-600',
+                  bg: 'bg-amber-50'
                 },
                 {
-                  icon: TrendingUp,
-                  label: 'Disparos Hoje',
-                  value: stats.total_sent_today,
-                  color: 'from-green-500 to-green-600'
+                  icon: MessageCircle,
+                  label: 'Contactados',
+                  value: stats.contacted,
+                  color: 'from-purple-500 to-purple-600',
+                  bg: 'bg-purple-50'
                 },
                 {
-                  icon: MessageSquare,
-                  label: 'Contatos Hoje',
-                  value: stats.total_contacts_today,
-                  color: 'from-purple-500 to-purple-600'
+                  icon: CheckCircle2,
+                  label: 'Convertidos',
+                  value: stats.converted,
+                  color: 'from-emerald-500 to-emerald-600',
+                  bg: 'bg-emerald-50'
+                },
+                {
+                  icon: XCircle,
+                  label: 'Perdidos',
+                  value: stats.lost,
+                  color: 'from-red-500 to-red-600',
+                  bg: 'bg-red-50'
                 }
               ].map((stat, idx) => {
                 const Icon = stat.icon;
@@ -266,138 +197,121 @@ export default function AdminDashboard() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.1 }}
-                    className={`bg-gradient-to-br ${stat.color} rounded-2xl p-6 border border-white/10`}
+                    className={`bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-white/80 text-sm font-bold">{stat.label}</p>
-                        <p className="text-4xl font-black mt-2">{stat.value}</p>
-                      </div>
-                      <Icon className="w-12 h-12 text-white/30" />
+                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} text-white flex items-center justify-center mb-4 shadow-lg`}>
+                      <Icon size={20} />
                     </div>
+                    <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">{stat.label}</p>
+                    <p className="text-3xl font-black text-slate-900 mt-1">{stat.value}</p>
                   </motion.div>
                 );
               })}
             </div>
 
-            {/* Activity */}
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-blue-500/20 rounded-2xl p-6">
-              <h2 className="text-xl font-black mb-4">📈 Atividade</h2>
-              <div className="space-y-2 text-slate-300">
-                <p>✓ <strong>{stats.total_campaigns_today}</strong> campanhas criadas hoje</p>
-                <p>✓ <strong>{stats.total_sent_today}</strong> mensagens disparadas</p>
-                <p>✓ <strong>{stats.total_contacts_today}</strong> contatos processados</p>
+            {/* Recent Activity */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+              <h2 className="text-xl font-black text-slate-900 mb-4 flex items-center gap-3">
+                <TrendingUp className="text-blue-500" size={24} />
+                Leads Recentes
+              </h2>
+              <div className="space-y-3">
+                {leads.slice(0, 5).map((lead) => (
+                  <div key={lead.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">
+                        {lead.full_name.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900">{lead.full_name}</p>
+                        <p className="text-xs text-slate-500">{lead.email}</p>
+                      </div>
+                    </div>
+                    <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
+                      lead.status === 'pending' && 'bg-amber-100 text-amber-700'
+                    } || (lead.status === 'contacted' && 'bg-purple-100 text-purple-700')
+                    } || (lead.status === 'converted' && 'bg-emerald-100 text-emerald-700')
+                    } || (lead.status === 'lost' && 'bg-red-100 text-red-700')
+                    }`}>
+                      {lead.status === 'pending' && '⏳ Pendente'}
+                      {lead.status === 'contacted' && '📞 Contactado'}
+                      {lead.status === 'converted' && '✓ Convertido'}
+                      {lead.status === 'lost' && '✗ Perdido'}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           </motion.div>
         )}
 
-        {/* Approvals Tab */}
-        {activeTab === 'approvals' && stats && (
+        {/* Leads Tab */}
+        {activeTab === 'leads' && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="space-y-4"
+            className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden"
           >
-            {stats.pending_approvals_list.length === 0 ? (
-              <div className="bg-slate-800/50 backdrop-blur-xl border border-blue-500/20 rounded-2xl p-12 text-center">
-                <CheckCircle2 className="w-12 h-12 text-green-400 mx-auto mb-4" />
-                <p className="text-slate-300 font-bold">Nenhuma aprovação pendente!</p>
-              </div>
-            ) : (
-              stats.pending_approvals_list.map((user) => (
-                <motion.div
-                  key={user.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="bg-slate-800/50 backdrop-blur-xl border border-blue-500/20 rounded-2xl p-6 flex items-center justify-between"
-                >
-                  <div className="flex-1">
-                    <h3 className="font-black text-lg">{user.name}</h3>
-                    <p className="text-slate-400 text-sm">{user.email}</p>
-                    <p className="text-slate-500 text-xs mt-2">
-                      {user.company && `🏢 ${user.company}`}
-                      {user.phone && ` • 📱 ${user.phone}`}
-                    </p>
-                    <p className="text-yellow-400 text-xs font-bold mt-2">
-                      ⏱️ {user.hours_pending}h pendente
-                    </p>
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => handleApprove(user.id)}
-                      disabled={processingId === user.id}
-                      className="flex items-center gap-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 px-6 py-3 rounded-lg font-bold transition-all disabled:opacity-50"
-                    >
-                      {processingId === user.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <CheckCircle2 size={18} />
-                      )}
-                      Aprovar
-                    </button>
-                    <button
-                      onClick={() => handleReject(user.id)}
-                      disabled={processingId === user.id}
-                      className="flex items-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 px-6 py-3 rounded-lg font-bold transition-all disabled:opacity-50"
-                    >
-                      {processingId === user.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <XCircle size={18} />
-                      )}
-                      Rejeitar
-                    </button>
-                  </div>
-                </motion.div>
-              ))
-            )}
-          </motion.div>
-        )}
-
-        {/* Users Tab */}
-        {activeTab === 'users' && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="bg-slate-800/50 backdrop-blur-xl border border-blue-500/20 rounded-2xl p-6 overflow-x-auto"
-          >
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-700">
-                  <th className="text-left py-3 px-4 font-black">Email</th>
-                  <th className="text-left py-3 px-4 font-black">Nome</th>
-                  <th className="text-left py-3 px-4 font-black">Status</th>
-                  <th className="text-left py-3 px-4 font-black">Último Acesso</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => (
-                  <tr key={user.id} className="border-b border-slate-700/50 hover:bg-slate-700/20 transition-colors">
-                    <td className="py-3 px-4">{user.email}</td>
-                    <td className="py-3 px-4 font-bold">{user.name}</td>
-                    <td className="py-3 px-4">
-                      <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
-                        user.status === 'approved'
-                          ? 'bg-green-500/20 text-green-300'
-                          : user.status === 'pending'
-                          ? 'bg-yellow-500/20 text-yellow-300'
-                          : 'bg-red-500/20 text-red-300'
-                      }`}>
-                        {user.status === 'approved' && '✓ Aprovado'}
-                        {user.status === 'pending' && '⏳ Pendente'}
-                        {user.status === 'rejected' && '✗ Rejeitado'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-slate-400">
-                      {user.last_access
-                        ? new Date(user.last_access).toLocaleString('pt-BR')
-                        : 'Nunca'}
-                    </td>
+            <div className="p-6 border-b border-slate-200">
+              <h2 className="text-xl font-black text-slate-900 flex items-center gap-3">
+                <Users className="text-blue-500" size={24} />
+                Gerenciar Leads
+              </h2>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    <th className="text-left py-4 px-6 font-bold text-slate-700">Nome</th>
+                    <th className="text-left py-4 px-6 font-bold text-slate-700">Email</th>
+                    <th className="text-left py-4 px-6 font-bold text-slate-700">WhatsApp</th>
+                    <th className="text-left py-4 px-6 font-bold text-slate-700">Status</th>
+                    <th className="text-left py-4 px-6 font-bold text-slate-700">Data</th>
+                    <th className="text-left py-4 px-6 font-bold text-slate-700">Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {leads.map((lead) => (
+                    <tr key={lead.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <td className="py-4 px-6 font-bold text-slate-900">{lead.full_name}</td>
+                      <td className="py-4 px-6 text-slate-600">{lead.email}</td>
+                      <td className="py-4 px-6 text-slate-600 flex items-center gap-2">
+                        <MessageCircle size={16} className="text-emerald-500" />
+                        {lead.whatsapp}
+                      </td>
+                      <td className="py-4 px-6">
+                        <select
+                          value={lead.status}
+                          onChange={(e) => handleStatusChange(lead.id, e.target.value as Lead['status'])}
+                          disabled={processingId === lead.id}
+                          className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50"
+                        >
+                          <option value="pending">⏳ Pendente</option>
+                          <option value="contacted">📞 Contactado</option>
+                          <option value="converted">✓ Convertido</option>
+                          <option value="lost">✗ Perdido</option>
+                        </select>
+                      </td>
+                      <td className="py-4 px-6 text-slate-500 text-xs">
+                        {new Date(lead.created_at).toLocaleDateString('pt-BR')}
+                      </td>
+                      <td className="py-4 px-6">
+                        <a
+                          href={`https://wa.me/55${lead.whatsapp.replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-colors"
+                        >
+                          <MessageCircle size={14} />
+                          WhatsApp
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </motion.div>
         )}
       </div>

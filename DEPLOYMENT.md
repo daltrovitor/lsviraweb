@@ -88,7 +88,7 @@ BAILEYS_STORE=./baileys_store.json
 
 ## 📚 Deploy no Vercel
 
-### Frontend + Admin Dashboard
+### Frontend + Admin Dashboard (Next.js Puro)
 
 ```bash
 # 1. Login no Vercel
@@ -97,22 +97,31 @@ vercel login
 # 2. Deploy do projeto
 vercel --prod
 
-# 3. Configurar domínios personalizados
-# - Ir para Vercel Dashboard
-# - Project Settings > Domains
-# - Adicionar: ls.viraweb.online
-# - Adicionar: adminls.viraweb.online (usar rewrite)
+# 3. Configurar variáveis de ambiente no Vercel Dashboard
+# - NEXT_PUBLIC_SUPABASE_URL
+# - NEXT_PUBLIC_SUPABASE_ANON_KEY
 ```
 
-### Reescrita de URL para Admin (vercel.json)
+### Configuração do Build
+
+O projeto usa Next.js puro para o frontend. O arquivo `vercel.json` já está configurado:
 
 ```json
 {
-  "rewrites": [
-    { "source": "/admin/:path*", "destination": "/admin/:path*" }
-  ]
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev:next",
+  "installCommand": "npm install",
+  "framework": "nextjs"
 }
 ```
+
+### Configurar Domínios
+
+1. Ir para Vercel Dashboard > Project Settings > Domains
+2. Adicionar domínio principal: `ls.viraweb.online`
+3. Adicionar subdomain admin: `adminls.viraweb.online`
+
+**Nota**: O middleware em `src/middleware.ts` já trata o roteamento por subdomain automaticamente.
 
 ## 🛤️ Deploy do Backend
 
@@ -156,22 +165,27 @@ api.viraweb.online     → CNAME → railway-app-url (ou seu backend)
 
 ## 🔄 Fluxo de Usuários
 
-### 1. Registro (Landing Page: ls.viraweb.online)
-- Usuário preenche formulário em `/landing`
-- Conta criada com status `pending`
-- Email enviado (opcional): "Aguarde aprovação"
+### 1. Login Principal (ls.viraweb.online)
+- Usuário faz login na página principal `/`
+- Autenticação via Supabase
+- Redirecionamento para `/dashboard`
 
-### 2. Aprovação (Admin Dashboard: adminls.viraweb.online)
-- Admin faz login em `/admin/login`
-- Vê usuários pendentes
-- Aprova ou rejeita
-- Usuário pode fazer login após aprovação
+### 2. Dashboard Principal (ls.viraweb.online/dashboard)
+- Usuário autenticado acessa dashboard
+- Sistema de disparos e extração de leads
+- Gestão de campanhas e contatos
 
-### 3. Dashboard Principal (ls.viraweb.online)
-- Usuário aprovado faz login
-- Acessa dashboard de campanhas
-- Importa contatos via CSV
-- Dispara mensagens
+### 3. Landing Page (ls.viraweb.online/landing)
+- Página de captura de leads acessível em `/landing`
+- Usuários preenchem formulário (Nome, Email, WhatsApp)
+- Leads salvos na tabela `landing_leads`
+- Instruções para contato via WhatsApp após cadastro
+
+### 4. Admin Dashboard (adminls.viraweb.online)
+- Admin faz login em `/admin/login` (ou subdomain adminls)
+- Visualiza leads da landing page
+- Gerencia status dos leads (pending, contacted, converted, lost)
+- Acesso direto via WhatsApp para cada lead
 
 ## 📊 Métricas no Admin Dashboard
 
@@ -219,20 +233,22 @@ AND last_access < now() - interval '30 days';
 
 ## 🎯 Checklist Final
 
-- [ ] SQL Schema executado no Supabase
-- [ ] Admin inicial criado com hash seguro
-- [ ] Variáveis de ambiente configuradas
+- [ ] SQL Schema executado no Supabase (incluindo tabela `landing_leads`)
+- [ ] Admin inicial criado com role='admin' no Supabase
+- [ ] Variáveis de ambiente configuradas no Vercel:
+  - [ ] NEXT_PUBLIC_SUPABASE_URL
+  - [ ] NEXT_PUBLIC_SUPABASE_ANON_KEY
 - [ ] Frontend deployado em ls.viraweb.online
-- [ ] Admin Dashboard em adminls.viraweb.online
-- [ ] Backend deployado (Railway/Render)
+- [ ] Subdomain adminls.viraweb.online configurado
 - [ ] Testes de fluxo completo:
-  - [ ] Registro na landing page
-  - [ ] Aprovação no admin dashboard
-  - [ ] Login no dashboard principal
-  - [ ] Upload de CSV
-  - [ ] Disparo de mensagens
-- [ ] Monitoramento configurado
-- [ ] Backups automáticos ativados
+  - [ ] Login na página principal (/)
+  - [ ] Acesso ao dashboard principal (/dashboard)
+  - [ ] Acesso ao landing page (/landing)
+  - [ ] Cadastro de lead na landing page
+  - [ ] Visualização de leads no admin dashboard
+  - [ ] Atualização de status dos leads
+- [ ] Monitoramento configurado (Vercel Analytics)
+- [ ] Backups automáticos do Supabase ativados
 
 ---
 

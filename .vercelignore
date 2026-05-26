@@ -1,0 +1,7 @@
+# Ignore server directory for Vercel deployment
+server/
+server-integrated.ts
+
+# Ignore files that are not needed for Next.js deployment
+*.log
+.env.local
