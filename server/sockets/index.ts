@@ -111,16 +111,21 @@ export const setupSockets = (io: Server) => {
 
     socket.on('start-maps-scrape', async ({ query, limit, onlyCellphones, excludeFixedPhones, onlyWithInstagramOrWhatsapp }) => {
       if (!currentUserId) return socket.emit('error', 'Não registrado');
+      console.log(`[Maps Scrape] ✓ Iniciando para usuário ${currentUserId}: "${query}" (limite: ${limit})`);
       try {
-        await mapsScraperManager.getService(currentUserId).startScrape({
+        const scraper = mapsScraperManager.getService(currentUserId);
+        console.log(`[Maps Scrape] ✓ Serviço obtido, iniciando scrape...`);
+        await scraper.startScrape({
           query,
           limit,
           onlyCellphones,
           excludeFixedPhones,
           onlyWithInstagramOrWhatsapp
         });
+        console.log(`[Maps Scrape] ✓ Scrape completado para ${currentUserId}`);
       } catch (err: any) {
-        socket.emit('error', err.message);
+        console.error(`[Maps Scrape] ✗ ERRO para ${currentUserId}:`, err);
+        socket.emit('error', `Erro na extração: ${err.message}`);
       }
     });
 

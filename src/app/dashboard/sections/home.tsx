@@ -17,7 +17,8 @@ import {
   Play,
   Square
 } from 'lucide-react';
-import { supabase } from '../../../utils/supabase';
+import { supabase } from '../../../lib/supabase';
+import { fetchUserProfile } from '../../../lib/profile';
 import { socket } from '../../../services/socket';
 import { WhatsAppStatus, Campaign } from '../../../types';
 import { QRCodeSVG } from 'qrcode.react';
@@ -45,13 +46,8 @@ export default function DashboardHome() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Buscar perfil do usuário
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      setUserProfile(profile || { full_name: user.email?.split('@')[0] });
+      const profile = await fetchUserProfile(user);
+      setUserProfile(profile);
 
       // Buscar leads extraídos
       const { data: leads } = await supabase

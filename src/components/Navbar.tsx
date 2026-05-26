@@ -13,7 +13,8 @@ import {
   User
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase } from '../utils/supabase';
+import { supabase } from '../lib/supabase';
+import { fetchUserProfile } from '../lib/profile';
 import { socket } from '../services/socket';
 import { WhatsAppStatus } from '../types';
 
@@ -53,32 +54,20 @@ export default function Navbar({ activeTab, setActiveTab, onLogout }: NavbarProp
 
   useEffect(() => {
     // Buscar perfil do usuário no Supabase
-    const fetchProfile = async () => {
-      const { data: { session } } = await supabase!.auth.getSession();
+    const loadProfile = async () => {
+      if (!supabase) return;
+      const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        const { data } = await supabase!
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        
-        if (data) {
-          setUserProfile(data);
-        } else {
-          // Fallback para metadata
-          setUserProfile({
-            full_name: session.user.user_metadata?.full_name || 'Usuário',
-            email: session.user.email
-          });
-        }
+        const profile = await fetchUserProfile(session.user);
+        setUserProfile(profile);
       }
     };
     
-    fetchProfile();
+    loadProfile();
   }, []);
 
   const handleLogout = async () => {
-    await supabase!.auth.signOut();
+    if (supabase) await supabase.auth.signOut();
     onLogout();
   };
 

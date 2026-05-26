@@ -5,7 +5,7 @@ import {
   Send, Users, Phone, Upload, Play, Pause, Square, AlertCircle, CheckCircle2, Clock
 } from 'lucide-react';
 import { socket } from '../../../services/socket';
-import { supabase } from '../../../utils/supabase';
+import { supabase } from '../../../lib/supabase';
 import { Contact, Campaign, WhatsAppStatus } from '../../../types';
 
 export default function DisparosSection() {
@@ -42,7 +42,7 @@ export default function DisparosSection() {
     formData.append('file', file);
 
     try {
-      const res = await fetch('http://localhost:3001/api/upload-csv', {
+      const res = await fetch('/api/upload-csv', {
         method: 'POST',
         body: formData,
       });
@@ -60,8 +60,9 @@ export default function DisparosSection() {
   const startCampaign = async () => {
     if (contacts.length === 0) return alert('Importe contatos primeiro');
     if (!message) return alert('Digite uma mensagem');
+    if (!supabase) return alert('Supabase não configurado');
 
-    const { data: { user } } = await supabase!.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     
     // Buscar configurações de automação do usuário
     let automation = undefined;

@@ -1,7 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { supabase, isSupabaseConfigured } from '../utils/supabase';
+import { supabase } from '../lib/supabase';
+
+const isSupabaseConfigured = (): boolean => {
+  return !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+};
 import { Mail, Lock, User, ArrowRight, AlertCircle, Database, Check, MapPin, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -21,7 +25,7 @@ export default function Auth({ onSession }: AuthProps) {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isConfigured) {
+    if (!isConfigured || !supabase) {
       setError('Supabase não está configurado. Contate o administrador.');
       return;
     }
@@ -32,7 +36,7 @@ export default function Auth({ onSession }: AuthProps) {
 
     try {
       if (isLogin) {
-        const { error: authErr } = await supabase!.auth.signInWithPassword({
+        const { error: authErr } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
         });
@@ -42,7 +46,7 @@ export default function Auth({ onSession }: AuthProps) {
           onSession();
         }, 1000);
       } else {
-        const { error: authErr } = await supabase!.auth.signUp({
+        const { error: authErr } = await supabase.auth.signUp({
           email: email.trim(),
           password,
           options: {

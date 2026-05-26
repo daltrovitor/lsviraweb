@@ -40,7 +40,7 @@ router.post('/register', async (req, res) => {
         status: 'pending',
         role: 'user'
       })
-      .select()
+      .select('*')
       .single();
 
     if (error) {

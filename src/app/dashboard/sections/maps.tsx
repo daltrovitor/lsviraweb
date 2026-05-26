@@ -17,7 +17,7 @@ import {
   Clock
 } from 'lucide-react';
 import { socket } from '../../../services/socket';
-import { supabase } from '../../../utils/supabase';
+import { supabase } from '../../../lib/supabase';
 
 export default function MapsSection() {
   const [query, setQuery] = useState('');
@@ -71,12 +71,13 @@ export default function MapsSection() {
 
   const saveToSupabase = async () => {
     if (results.length === 0) return alert('Nenhum lead para salvar');
-    const { data: { user } } = await supabase!.auth.getUser();
+    if (!supabase) return alert('Supabase não configurado');
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return alert('Usuário não autenticado');
 
     try {
       // 1. Criar a busca
-      const { data: search, error: searchErr } = await supabase!
+      const { data: search, error: searchErr } = await supabase
         .from('scraped_searches')
         .insert({
           user_id: user.id,
@@ -85,7 +86,7 @@ export default function MapsSection() {
           found_count: results.length,
           filters
         })
-        .select()
+        .select('*')
         .single();
         
       if (searchErr) throw searchErr;
@@ -102,7 +103,7 @@ export default function MapsSection() {
         url: r.url
       }));
 
-      const { error: leadsErr } = await supabase!
+      const { error: leadsErr } = await supabase
         .from('scraped_leads')
         .insert(leadsToInsert);
 

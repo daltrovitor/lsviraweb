@@ -3,7 +3,21 @@
 import { useState, useEffect } from 'react';
 import { Database, X, Check, AlertCircle, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { isSupabaseConfigured, updateSupabaseCredentials, clearSupabaseCredentials } from '../utils/supabase';
+const isSupabaseConfigured = (): boolean => {
+  return !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+};
+
+const updateSupabaseCredentials = (url: string, key: string) => {
+  console.warn('Configuração via UI foi removida. Use variáveis de ambiente (.env) para configurar o Supabase.');
+};
+
+const clearSupabaseCredentials = () => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('supabase_url');
+    localStorage.removeItem('supabase_anon_key');
+    window.location.reload();
+  }
+};
 
 interface ConfigModalProps {
   isOpen: boolean;

@@ -22,7 +22,11 @@ import {
 } from 'lucide-react';
 import { socket } from '@/services/socket';
 import { motion, AnimatePresence } from 'framer-motion';
-import { supabase, isSupabaseConfigured } from '@/utils/supabase';
+import { supabase } from '@/lib/supabase';
+
+const isSupabaseConfigured = (): boolean => {
+  return !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+};
 import { sanitizeWhatsAppNumber } from '@/utils/numberSanitizer';
 
 type Place = {
@@ -78,12 +82,12 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
 
   // Load history from Supabase
   const fetchHistory = async () => {
-    if (!isConfigured) return;
+    if (!isConfigured || !supabase) return;
     try {
-      const { data: { user } } = await supabase!.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase!
+      const { data, error } = await supabase
         .from('maps_searches')
         .select('*')
         .order('created_at', { ascending: false });
@@ -142,13 +146,13 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
   }, [logs]);
 
   const saveSearchToSupabase = async (searchQuery: string, targetLimit: number, finalLeads: Place[]) => {
-    if (!isConfigured) return;
+    if (!isConfigured || !supabase) return;
     try {
-      const { data: { user } } = await supabase!.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       // 1. Salvar metadados da busca
-      const { data: searchData, error: searchErr } = await supabase!
+      const { data: searchData, error: searchErr } = await supabase
         .from('maps_searches')
         .insert({
           user_id: user.id,
@@ -161,7 +165,7 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
             onlyWithInstagramOrWhatsapp
           }
         })
-        .select()
+        .select('*')
         .single();
 
       if (searchErr) throw searchErr;
@@ -181,7 +185,7 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
           url: lead.url || ''
         }));
 
-        const { error: leadsErr } = await supabase!
+        const { error: leadsErr } = await supabase
           .from('scraped_leads')
           .insert(leadsToInsert);
 
@@ -209,7 +213,8 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
     }
 
     try {
-      const { data, error } = await supabase!
+      if (!supabase) return alert('Supabase não configurado');
+      const { data, error } = await supabase
         .from('scraped_leads')
         .select('*')
         .eq('search_id', search.id);
