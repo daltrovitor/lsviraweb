@@ -86,10 +86,10 @@ export class MapsScraperService extends EventEmitter {
           }
         }
         
-        // Se não encontrar Chrome do sistema, usar Puppeteer padrão
+        // Se não encontrar Chrome do sistema, tentar usar Chrome baixado pelo Puppeteer
         if (!foundChrome) {
-          this.emit('log', this.userId, 'Chrome do sistema não encontrado, usando Puppeteer padrão');
-          // Não definir executablePath, Puppeteer usará seu próprio Chrome
+          this.emit('log', this.userId, 'Chrome do sistema não encontrado, tentando Chrome do Puppeteer');
+          // O Puppeteer vai usar o Chrome baixado via npx puppeteer browsers install chrome
         }
       }
 
