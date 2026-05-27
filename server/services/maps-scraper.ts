@@ -45,6 +45,7 @@ export class MapsScraperService extends EventEmitter {
     this.emit('status', this.userId, 'starting');
     
     try {
+      this.emit('log', this.userId, 'Iniciando extração...');
       console.log(`[MapsScraper] Iniciando navegador invisível para usuário ${this.userId}...`);
       
       // Configuração para Render (usa Chrome do sistema)
@@ -153,7 +154,7 @@ export class MapsScraperService extends EventEmitter {
       
       for (const link of links) {
         if (this.isStopped) {
-          console.log(`[MapsScraper] Extração interrompida pelo usuário ${this.userId}.`);
+          this.emit('log', this.userId, 'Extração interrompida pelo usuário.');
           break;
         }
 
@@ -185,7 +186,7 @@ export class MapsScraperService extends EventEmitter {
 
           let cleanPhone = placeData.phone.replace(/\D/g, '');
           if (!cleanPhone) {
-            console.log(`[MapsScraper] Ignorado: ${placeData.title} (Sem número de telefone comercial)`);
+            this.emit('log', this.userId, `Ignorado: ${placeData.title} (Sem número de telefone comercial)`);
             continue;
           }
 
@@ -198,12 +199,12 @@ export class MapsScraperService extends EventEmitter {
           const isFixedPhone = localPhone.length === 10 || (localPhone.length === 11 && !localPhone.startsWith('9'));
 
           if (onlyCellphones && !isCellphone) {
-            console.log(`[MapsScraper] Ignorado: ${placeData.title} (${placeData.phone} não é celular)`);
+            this.emit('log', this.userId, `Ignorado: ${placeData.title} (${placeData.phone} não é celular/WhatsApp)`);
             continue;
           }
 
           if (excludeFixedPhones && isFixedPhone) {
-            console.log(`[MapsScraper] Ignorado: ${placeData.title} (${placeData.phone} é telefone fixo)`);
+            this.emit('log', this.userId, `Ignorado: ${placeData.title} (${placeData.phone} é telefone fixo)`);
             continue;
           }
 
@@ -213,7 +214,7 @@ export class MapsScraperService extends EventEmitter {
                                          webLower.includes('wa.me');
           
           if (onlyWithInstagramOrWhatsapp && placeData.website && !hasInstagramOrWhatsapp) {
-            console.log(`[MapsScraper] Ignorado: ${placeData.title} (Possui site institucional próprio: ${placeData.website})`);
+            this.emit('log', this.userId, `Ignorado: ${placeData.title} (Possui site institucional próprio: ${placeData.website})`);
             continue;
           }
 
