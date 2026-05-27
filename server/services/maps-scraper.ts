@@ -47,9 +47,6 @@ export class MapsScraperService extends EventEmitter {
     try {
       this.emit('log', this.userId, 'Iniciando navegador invisível...');
       
-      // Configurar cache path do Puppeteer para Render
-      const cachePath = process.env.PUPPETEER_CACHE_PATH || '/opt/render/project/.cache/puppeteer';
-      
       // Configuração para Render (usa Chrome do sistema)
       const launchOptions: any = {
         headless: 'new',
@@ -61,9 +58,7 @@ export class MapsScraperService extends EventEmitter {
           '--disable-gpu',
           '--lang=pt-BR,pt',
           '--disable-features=IsolateOrigins,site-per-process'
-        ],
-        // Configurar cache path explicitamente
-        executablePath: undefined // Deixar Puppeteer decidir
+        ]
       };
 
       // No Render, tentar múltiplos caminhos do Chrome
@@ -92,32 +87,8 @@ export class MapsScraperService extends EventEmitter {
         }
         
         if (!foundChrome) {
-          this.emit('log', this.userId, `Chrome do sistema não encontrado, cache path: ${cachePath}`);
-          // Tentar encontrar Chrome no cache
-          try {
-            const fs = require('fs');
-            const path = require('path');
-            const chromePath = path.join(cachePath, 'chrome', 'linux64', 'chrome-linux64', 'chrome');
-            if (fs.existsSync(chromePath)) {
-              launchOptions.executablePath = chromePath;
-              this.emit('log', this.userId, `Usando Chrome do cache: ${chromePath}`);
-            } else {
-              this.emit('log', this.userId, `Chrome não encontrado no cache em: ${chromePath}`);
-              // Listar conteúdo do cache para debug
-              try {
-                if (fs.existsSync(cachePath)) {
-                  const files = fs.readdirSync(cachePath);
-                  this.emit('log', this.userId, `Conteúdo do cache: ${files.join(', ')}`);
-                } else {
-                  this.emit('log', this.userId, `Cache path não existe: ${cachePath}`);
-                }
-              } catch (e) {
-                this.emit('log', this.userId, `Erro ao listar cache: ${e}`);
-              }
-            }
-          } catch (e) {
-            this.emit('log', this.userId, `Erro ao buscar Chrome no cache: ${e}`);
-          }
+          this.emit('log', this.userId, 'Chrome do sistema não encontrado');
+          throw new Error('Chrome não encontrado no sistema. Verifique se o build command instalou o chromium-browser.');
         }
       }
 
