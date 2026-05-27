@@ -45,7 +45,7 @@ export class MapsScraperService extends EventEmitter {
     this.emit('status', this.userId, 'starting');
     
     try {
-      this.emit('log', this.userId, 'Iniciando navegador invisível...');
+      console.log(`[MapsScraper] Iniciando navegador invisível para usuário ${this.userId}...`);
       
       // Configuração para Render (usa Chrome do sistema)
       const launchOptions: any = {
@@ -77,7 +77,7 @@ export class MapsScraperService extends EventEmitter {
             const fs = require('fs');
             if (fs.existsSync(path)) {
               launchOptions.executablePath = path;
-              this.emit('log', this.userId, `Usando Chrome em: ${path}`);
+              console.log(`[MapsScraper] Usando Chrome em: ${path}`);
               foundChrome = true;
               break;
             }
@@ -90,10 +90,10 @@ export class MapsScraperService extends EventEmitter {
         if (!foundChrome) {
           try {
             const chromium = require('@sparticuz/chromium');
-            launchOptions.executablePath = chromium.executablePath();
-            this.emit('log', this.userId, `Usando Chrome via @sparticuz/chromium: ${chromium.executablePath()}`);
+            launchOptions.executablePath = await chromium.executablePath();
+            console.log(`[MapsScraper] Usando Chrome via @sparticuz/chromium: ${launchOptions.executablePath}`);
           } catch (e) {
-            this.emit('log', this.userId, `@sparticuz/chromium não disponível: ${e}`);
+            console.log(`[MapsScraper] @sparticuz/chromium não disponível: ${e}`);
             // Fallback para Puppeteer padrão
           }
         }
@@ -112,7 +112,7 @@ export class MapsScraperService extends EventEmitter {
       try {
         await page.waitForSelector('div[role="feed"]', { timeout: 15000 });
       } catch (e) {
-        this.emit('log', this.userId, 'Aviso: Contêiner de resultados não encontrado rapidamente, tentando prosseguir...');
+        console.log(`[MapsScraper] Contêiner de resultados não encontrado rapidamente, tentando prosseguir...`);
       }
 
       this.emit('log', this.userId, 'Carregando lista de estabelecimentos...');
@@ -153,7 +153,7 @@ export class MapsScraperService extends EventEmitter {
       
       for (const link of links) {
         if (this.isStopped) {
-          this.emit('log', this.userId, 'Extração interrompida pelo usuário.');
+          console.log(`[MapsScraper] Extração interrompida pelo usuário ${this.userId}.`);
           break;
         }
 
@@ -185,7 +185,7 @@ export class MapsScraperService extends EventEmitter {
 
           let cleanPhone = placeData.phone.replace(/\D/g, '');
           if (!cleanPhone) {
-            this.emit('log', this.userId, `Ignorado: ${placeData.title} (Sem número de telefone comercial)`);
+            console.log(`[MapsScraper] Ignorado: ${placeData.title} (Sem número de telefone comercial)`);
             continue;
           }
 
@@ -198,12 +198,12 @@ export class MapsScraperService extends EventEmitter {
           const isFixedPhone = localPhone.length === 10 || (localPhone.length === 11 && !localPhone.startsWith('9'));
 
           if (onlyCellphones && !isCellphone) {
-            this.emit('log', this.userId, `Ignorado: ${placeData.title} (${placeData.phone} não é celular celular/WhatsApp)`);
+            console.log(`[MapsScraper] Ignorado: ${placeData.title} (${placeData.phone} não é celular)`);
             continue;
           }
 
           if (excludeFixedPhones && isFixedPhone) {
-            this.emit('log', this.userId, `Ignorado: ${placeData.title} (${placeData.phone} é telefone fixo)`);
+            console.log(`[MapsScraper] Ignorado: ${placeData.title} (${placeData.phone} é telefone fixo)`);
             continue;
           }
 
@@ -213,7 +213,7 @@ export class MapsScraperService extends EventEmitter {
                                          webLower.includes('wa.me');
           
           if (onlyWithInstagramOrWhatsapp && placeData.website && !hasInstagramOrWhatsapp) {
-            this.emit('log', this.userId, `Ignorado: ${placeData.title} (Possui site institucional próprio: ${placeData.website})`);
+            console.log(`[MapsScraper] Ignorado: ${placeData.title} (Possui site institucional próprio: ${placeData.website})`);
             continue;
           }
 
@@ -224,7 +224,7 @@ export class MapsScraperService extends EventEmitter {
           this.emit('log', this.userId, `Extraído (${validCount}/${maxItems}): ${result.title} (${result.phone})`);
 
         } catch (itemErr: any) {
-          this.emit('log', this.userId, `Erro ao extrair link: ${itemErr.message}`);
+          console.log(`[MapsScraper] Erro ao extrair link: ${itemErr.message}`);
         }
         
         await new Promise(r => setTimeout(r, 200));
@@ -240,7 +240,8 @@ export class MapsScraperService extends EventEmitter {
       }
       
     } catch (error: any) {
-      this.emit('log', this.userId, `Erro crítico na extração: ${error.message}`);
+      console.log(`[MapsScraper] Erro crítico na extração: ${error.message}`);
+      this.emit('log', this.userId, 'Ocorreu um erro durante a extração. Tente novamente.');
       this.emit('status', this.userId, 'error');
     } finally {
       if (this.browser) {
