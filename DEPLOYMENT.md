@@ -2,17 +2,18 @@
 
 ## 🚀 Arquitetura do Sistema
 
-- **Frontend**: Next.js 14 (React) - `ls.viraweb.online`
-- **Admin Dashboard**: Next.js (React) - `adminls.viraweb.online`
-- **Backend**: Express.js com Socket.io - Vercel Functions ou Railway
+- **Frontend**: Next.js 14 (React) - `ls.viraweb.online` - Deploy na Vercel
+- **Admin Dashboard**: Next.js (React) - `adminls.viraweb.online` - Deploy na Vercel
+- **Backend**: Express.js com Socket.io - Deploy na Render (24/7)
+- **Background Server**: Node.js com Supabase Realtime - Deploy na Render/Railway
 - **Database**: Supabase (PostgreSQL)
-- **Autenticação**: JWT + Role-based Access Control (RBAC)
+- **Autenticação**: Supabase Auth + Role-based Access Control (RBAC)
 
 ## 📋 Pré-requisitos
 
 1. Conta Supabase (https://supabase.com)
-2. Vercel Account (https://vercel.com)
-3. Railway Account para Backend (https://railway.app) - OU usar Vercel Serverless
+2. Vercel Account (https://vercel.com) - Para Frontend
+3. Render Account para Backend (https://render.com)
 4. Git e Node.js instalados
 
 ## 🗄️ Setup do Banco de Dados
@@ -108,12 +109,14 @@ O projeto usa Next.js puro para o frontend. O arquivo `vercel.json` já está co
 
 ```json
 {
-  "buildCommand": "npm run build",
-  "devCommand": "npm run dev:next",
+  "buildCommand": "npm run build:next",
+  "devCommand": "next dev",
   "installCommand": "npm install",
   "framework": "nextjs"
 }
 ```
+
+**Nota**: O `.vercelignore` exclui `server/` e `background-server/` do deploy da Vercel, pois o backend é deployado separadamente na Render.
 
 ### Configurar Domínios
 
@@ -123,35 +126,40 @@ O projeto usa Next.js puro para o frontend. O arquivo `vercel.json` já está co
 
 **Nota**: O middleware em `src/middleware.ts` já trata o roteamento por subdomain automaticamente.
 
-## 🛤️ Deploy do Backend
+## 🛤️ Deploy do Backend (Render)
 
-### Opção 1: Railway (Recomendado)
+O backend com Socket.io e Next.js integrado é deployado na Render para rodar 24/7.
 
-```bash
-# 1. Instalar Railway CLI
-npm i -g @railway/cli
+### 1. Criar Web Service no Render
 
-# 2. Login
-railway login
+1. Acesse [render.com](https://render.com)
+2. Crie um novo "Web Service"
+3. Conecte seu repositório GitHub
+4. Configure:
+   - **Root Directory**: Deixe vazio (raiz do projeto)
+   - **Build Command**: `npm install && npm run build`
+   - **Start Command**: `npm start`
 
-# 3. Criar projeto
-railway init
+### 2. Variáveis de Ambiente no Render
 
-# 4. Deployar
-railway up
+Adicione no Render > Settings > Environment:
 
-# 5. Configurar variáveis de ambiente no Railway Dashboard
+```
+NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+NODE_ENV=production
+HOST=0.0.0.0
+NEXT_PUBLIC_SOCKET_URL=https://seu-backend.onrender.com
 ```
 
-### Opção 2: Render.com
+### 3. Obter URL do Backend
 
-```bash
-# 1. Conectar repositório GitHub
-# 2. Criar New Web Service
-# 3. Configurar Build Command: npm install && npm run build
-# 4. Configurar Start Command: npm run start
-# 5. Adicionar Environment Variables
-```
+Após o deploy, copie a URL do backend (ex: `https://seu-backend.onrender.com`) e use como `NEXT_PUBLIC_SOCKET_URL` na Vercel.
+
+## 🛤️ Deploy do Background Server (Render/Railway)
+
+O servidor de background processa jobs de scraping 24/7. Veja [BACKGROUND_SERVER.md](./BACKGROUND_SERVER.md) para instruções detalhadas.
 
 ## 🌐 Configurar Subdomínios
 
