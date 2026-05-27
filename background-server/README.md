@@ -88,12 +88,13 @@ No Render:
   - `SUPABASE_URL` = URL do seu projeto Supabase
   - `SUPABASE_SERVICE_ROLE_KEY` = Service Role Key do Supabase
   - `PORT` = 10000 (Render usa esta porta por padrão)
+  - `PUPPETEER_CACHE_PATH` = `/opt/render/project/.cache/puppeteer`
 
 ### 3. Configurar Puppeteer para Render
 
-O build command já inclui a instalação do Chrome:
+O build command já inclui a instalação do Chrome com cache path correto:
 ```
-npm install && npx puppeteer browsers install chrome && npm run build
+npm install && PUPPETEER_CACHE_PATH=/opt/render/project/.cache/puppeteer npx puppeteer browsers install chrome && npm run build
 ```
 
 O código detecta automaticamente o Chrome do sistema e tenta múltiplos caminhos:
@@ -103,7 +104,7 @@ O código detecta automaticamente o Chrome do sistema e tenta múltiplos caminho
 - `/usr/bin/google-chrome-stable`
 - `/snap/bin/chromium`
 
-Se não encontrar nenhum, usa o Chrome baixado via `npx puppeteer browsers install chrome`.
+Se não encontrar nenhum, usa o Chrome baixado no cache path configurado.
 
 ### 3. Health Check
 
@@ -240,10 +241,11 @@ background-server/
 - Verifique as policies RLS nas tabelas
 
 ### Puppeteer falha no deploy
-- O build command já instala o Chrome via `npx puppeteer browsers install chrome`
+- Certifique-se de configurar `PUPPETEER_CACHE_PATH=/opt/render/project/.cache/puppeteer` nas variáveis de ambiente
+- O build command já instala o Chrome com o cache path correto
 - O código detecta automaticamente o Chrome do sistema na Render
 - Tenta múltiplos caminhos possíveis do Chrome/Chromium
-- Se não encontrar, usa o Chrome baixado durante o build
+- Se não encontrar, usa o Chrome baixado no cache configurado
 - Verifique os logs para ver qual caminho foi usado
 
 ### Health check falha no Render
