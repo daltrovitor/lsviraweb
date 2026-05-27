@@ -86,9 +86,10 @@ export class MapsScraperService extends EventEmitter {
           }
         }
         
+        // Se não encontrar Chrome do sistema, usar Puppeteer padrão
         if (!foundChrome) {
-          this.emit('log', this.userId, 'Chrome do sistema não encontrado');
-          throw new Error('Chrome não encontrado no sistema. Verifique se o build command instalou o chromium-browser.');
+          this.emit('log', this.userId, 'Chrome do sistema não encontrado, usando Puppeteer padrão');
+          // Não definir executablePath, Puppeteer usará seu próprio Chrome
         }
       }
 

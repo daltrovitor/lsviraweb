@@ -2,7 +2,7 @@ services:
   - type: web
     name: background-server
     env: node
-    buildCommand: npm install && apt-get update && apt-get install -y chromium-browser && npm run build
+    buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
       - key: SUPABASE_URL
