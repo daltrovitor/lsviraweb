@@ -311,5 +311,8 @@ CREATE TRIGGER on_auth_user_created
 -- ==========================================
 -- Function para habilitar realtime nas tabelas de jobs
 -- ==========================================
+-- Criar publicação realtime se não existir
+CREATE PUBLICATION IF NOT EXISTS supabase_realtime;
+
 -- Habilitar realtime para scraper_jobs
 ALTER PUBLICATION supabase_realtime ADD TABLE public.scraper_jobs;
