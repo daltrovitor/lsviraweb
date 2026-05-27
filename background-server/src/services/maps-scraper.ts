@@ -86,10 +86,16 @@ export class MapsScraperService extends EventEmitter {
           }
         }
         
-        // Se não encontrar Chrome do sistema, tentar usar Chrome baixado pelo Puppeteer
+        // Se não encontrar Chrome do sistema, usar @sparticuz/chromium
         if (!foundChrome) {
-          this.emit('log', this.userId, 'Chrome do sistema não encontrado, tentando Chrome do Puppeteer');
-          // O Puppeteer vai usar o Chrome baixado via npx puppeteer browsers install chrome
+          try {
+            const chromium = require('@sparticuz/chromium');
+            launchOptions.executablePath = chromium.executablePath();
+            this.emit('log', this.userId, `Usando Chrome via @sparticuz/chromium: ${chromium.executablePath()}`);
+          } catch (e) {
+            this.emit('log', this.userId, `@sparticuz/chromium não disponível: ${e}`);
+            // Fallback para Puppeteer padrão
+          }
         }
       }
 

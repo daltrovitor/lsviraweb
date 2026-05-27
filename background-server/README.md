@@ -91,19 +91,19 @@ No Render:
 
 ### 3. Configurar Puppeteer para Render
 
-O build command instala o Chrome via Puppeteer:
+O build command é simples:
 ```
-npm install && npx puppeteer browsers install chrome && npm run build
+npm install && npm run build
 ```
 
-O código detecta automaticamente o Chrome do sistema e tenta múltiplos caminhos:
+O projeto usa `@sparticuz/chromium` que é um pacote feito especificamente para ambientes serverless como Render. O código detecta automaticamente o Chrome do sistema e tenta múltiplos caminhos:
 - `/usr/bin/chromium-browser`
 - `/usr/bin/chromium`
 - `/usr/bin/google-chrome`
 - `/usr/bin/google-chrome-stable`
 - `/snap/bin/chromium`
 
-Se não encontrar nenhum, usa o Chrome baixado pelo Puppeteer durante o build.
+Se não encontrar nenhum, usa o Chrome fornecido pelo `@sparticuz/chromium`.
 
 ### 3. Health Check
 
@@ -240,11 +240,10 @@ background-server/
 - Verifique as policies RLS nas tabelas
 
 ### Puppeteer falha no deploy
-- O build command instala o Chrome via `npx puppeteer browsers install chrome`
-- Certifique-se de que o build command inclui este comando
+- O projeto usa `@sparticuz/chromium` que funciona bem em ambientes serverless
 - O código detecta automaticamente o Chrome do sistema
 - Tenta múltiplos caminhos possíveis do Chrome/Chromium
-- Se não encontrar, usa o Chrome baixado durante o build
+- Se não encontrar, usa o Chrome fornecido pelo `@sparticuz/chromium`
 - Verifique os logs para ver qual caminho foi usado
 
 ### Health check falha no Render
