@@ -46,17 +46,27 @@ export class MapsScraperService extends EventEmitter {
     
     try {
       this.emit('log', this.userId, 'Iniciando navegador invisível...');
-      this.browser = await puppeteer.launch({
-        headless: true,
+      
+      // Configuração para Render (usa Chrome do sistema)
+      const launchOptions: any = {
+        headless: 'new',
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
           '--disable-accelerated-2d-canvas',
           '--disable-gpu',
-          '--lang=pt-BR,pt'
+          '--lang=pt-BR,pt',
+          '--disable-features=IsolateOrigins,site-per-process'
         ]
-      });
+      };
+
+      // No Render, usar Chrome do sistema se disponível
+      if (process.env.RENDER || process.env.RENDER_EXTERNAL_HOSTNAME) {
+        launchOptions.executablePath = '/usr/bin/chromium-browser';
+      }
+
+      this.browser = await puppeteer.launch(launchOptions);
 
       const page = await this.browser.newPage();
       await page.setViewport({ width: 1920, height: 2000 });
