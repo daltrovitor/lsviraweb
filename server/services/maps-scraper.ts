@@ -61,9 +61,33 @@ export class MapsScraperService extends EventEmitter {
         ]
       };
 
-      // No Render, usar Chrome do sistema se disponível
+      // No Render, tentar múltiplos caminhos do Chrome
       if (process.env.RENDER || process.env.RENDER_EXTERNAL_HOSTNAME) {
-        launchOptions.executablePath = '/usr/bin/chromium-browser';
+        const possiblePaths = [
+          '/usr/bin/chromium-browser',
+          '/usr/bin/chromium',
+          '/usr/bin/google-chrome',
+          '/usr/bin/google-chrome-stable',
+          '/snap/bin/chromium'
+        ];
+        
+        for (const path of possiblePaths) {
+          try {
+            const fs = require('fs');
+            if (fs.existsSync(path)) {
+              launchOptions.executablePath = path;
+              this.emit('log', this.userId, `Usando Chrome em: ${path}`);
+              break;
+            }
+          } catch (e) {
+            // Continuar para o próximo caminho
+          }
+        }
+        
+        // Se nenhum caminho funcionar, não definir executablePath e deixar Puppeteer tentar sozinho
+        if (!launchOptions.executablePath) {
+          this.emit('log', this.userId, 'Chrome do sistema não encontrado, usando Puppeteer padrão');
+        }
       }
 
       this.browser = await puppeteer.launch(launchOptions);

@@ -11,7 +11,6 @@
 - `NODE_ENV` - Deve ser `production`
 - `PORT` - Render define automaticamente (geralmente 10000), mas pode definir manualmente
 - `HOST` - Deve ser `0.0.0.0` (Render exige isso)
-- `PUPPETEER_SKIP_CHROMIUM_DOWNLOAD` - Deve ser `true` (para usar Chrome do sistema)
 
 ### Socket.io (para frontend conectar)
 - `NEXT_PUBLIC_SOCKET_URL` - URL do servidor backend (ex: https://seu-app.onrender.com)
@@ -34,7 +33,6 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 NODE_ENV=production
 HOST=0.0.0.0
 NEXT_PUBLIC_SOCKET_URL=https://seu-app.onrender.com
-PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ```
 
 ## Notas Importantes
@@ -43,7 +41,7 @@ PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 2. **NEXT_PUBLIC_SOCKET_URL**: Deve ser a URL completa do seu app no Render (com https://).
 3. **HOST=0.0.0.0**: Obrigatório para Render passar no health check.
 4. **PORT**: Render define automaticamente, mas você pode fixar se necessário.
-5. **PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true**: Obrigatório para Puppeteer funcionar no Render. O Render já tem Chromium instalado, então não precisa baixar.
+5. **Puppeteer**: O código detecta automaticamente o Chrome do sistema. Se não encontrar, baixa sua própria versão.
 
 ## Como Obter as Chaves do Supabase
 

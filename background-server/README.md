@@ -88,14 +88,17 @@ No Render:
   - `SUPABASE_URL` = URL do seu projeto Supabase
   - `SUPABASE_SERVICE_ROLE_KEY` = Service Role Key do Supabase
   - `PORT` = 10000 (Render usa esta porta por padrão)
-  - `PUPPETEER_SKIP_CHROMIUM_DOWNLOAD` = `true` (para usar Chrome do sistema)
 
 ### 3. Configurar Puppeteer para Render
 
-O Render já tem Chromium instalado. O código está configurado para usar o Chrome do sistema automaticamente quando detecta que está rodando no Render.
+O código detecta automaticamente o Chrome do sistema e tenta múltiplos caminhos:
+- `/usr/bin/chromium-browser`
+- `/usr/bin/chromium`
+- `/usr/bin/google-chrome`
+- `/usr/bin/google-chrome-stable`
+- `/snap/bin/chromium`
 
-**Variáveis de ambiente adicionais para Puppeteer**:
-- `PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true` - Pula download do Chrome (usa do sistema)
+Se não encontrar nenhum, o Puppeteer baixa sua própria versão automaticamente.
 
 ### 3. Health Check
 
@@ -232,9 +235,10 @@ background-server/
 - Verifique as policies RLS nas tabelas
 
 ### Puppeteer falha no deploy
-- No Render, o ambiente já suporta Puppeteer com Chromium instalado
-- Certifique-se de adicionar `PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true` nas variáveis de ambiente
-- O código detecta automaticamente o Render e usa `/usr/bin/chromium-browser`
+- O código detecta automaticamente o Chrome do sistema na Render
+- Tenta múltiplos caminhos possíveis do Chrome/Chromium
+- Se não encontrar, baixa sua própria versão automaticamente
+- Verifique os logs para ver qual caminho foi usado
 
 ### Health check falha no Render
 - Verifique se a porta está configurada corretamente (PORT=10000)
