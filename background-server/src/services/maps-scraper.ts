@@ -71,12 +71,14 @@ export class MapsScraperService extends EventEmitter {
           '/snap/bin/chromium'
         ];
         
+        let foundChrome = false;
         for (const path of possiblePaths) {
           try {
             const fs = require('fs');
             if (fs.existsSync(path)) {
               launchOptions.executablePath = path;
               this.emit('log', this.userId, `Usando Chrome em: ${path}`);
+              foundChrome = true;
               break;
             }
           } catch (e) {
@@ -84,9 +86,9 @@ export class MapsScraperService extends EventEmitter {
           }
         }
         
-        // Se nenhum caminho funcionar, não definir executablePath e deixar Puppeteer tentar sozinho
-        if (!launchOptions.executablePath) {
-          this.emit('log', this.userId, 'Chrome do sistema não encontrado, usando Puppeteer padrão');
+        if (!foundChrome) {
+          this.emit('log', this.userId, 'Chrome do sistema não encontrado, usando Puppeteer baixado');
+          // Não definir executablePath, Puppeteer usará o Chrome baixado via npx puppeteer browsers install chrome
         }
       }
 

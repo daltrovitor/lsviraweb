@@ -91,6 +91,11 @@ No Render:
 
 ### 3. Configurar Puppeteer para Render
 
+O build command já inclui a instalação do Chrome:
+```
+npm install && npx puppeteer browsers install chrome && npm run build
+```
+
 O código detecta automaticamente o Chrome do sistema e tenta múltiplos caminhos:
 - `/usr/bin/chromium-browser`
 - `/usr/bin/chromium`
@@ -98,7 +103,7 @@ O código detecta automaticamente o Chrome do sistema e tenta múltiplos caminho
 - `/usr/bin/google-chrome-stable`
 - `/snap/bin/chromium`
 
-Se não encontrar nenhum, o Puppeteer baixa sua própria versão automaticamente.
+Se não encontrar nenhum, usa o Chrome baixado via `npx puppeteer browsers install chrome`.
 
 ### 3. Health Check
 
@@ -235,9 +240,10 @@ background-server/
 - Verifique as policies RLS nas tabelas
 
 ### Puppeteer falha no deploy
+- O build command já instala o Chrome via `npx puppeteer browsers install chrome`
 - O código detecta automaticamente o Chrome do sistema na Render
 - Tenta múltiplos caminhos possíveis do Chrome/Chromium
-- Se não encontrar, baixa sua própria versão automaticamente
+- Se não encontrar, usa o Chrome baixado durante o build
 - Verifique os logs para ver qual caminho foi usado
 
 ### Health check falha no Render

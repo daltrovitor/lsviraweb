@@ -137,7 +137,7 @@ O backend com Socket.io e Next.js integrado é deployado na Render para rodar 24
 3. Conecte seu repositório GitHub
 4. Configure:
    - **Root Directory**: Deixe vazio (raiz do projeto)
-   - **Build Command**: `npm install && npm run build`
+   - **Build Command**: `npm install && npx puppeteer browsers install chrome && npm run build`
    - **Start Command**: `npm start`
 
 ### 2. Variáveis de Ambiente no Render
