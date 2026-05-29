@@ -1,7 +1,14 @@
 'use client';
 
-import { LoginForm } from '@/components/auth/login-form';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function HomePage() {
-  return <LoginForm />;
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace('/landing');
+  }, [router]);
+
+  return null;
 }

@@ -11,16 +11,30 @@ type Lead = {
   full_name: string;
   email: string;
   whatsapp: string;
+  password?: string;
   status: 'pending' | 'contacted' | 'converted' | 'lost';
   notes: string;
   created_at: string;
   updated_at: string;
 };
 
+type UserProfile = {
+  id: string;
+  full_name: string;
+  email: string;
+  role: 'user' | 'admin';
+  status: string;
+  last_access: string;
+  created_at: string;
+  campaigns_sent: number;
+  leads_extracted: number;
+};
+
 export default function AdminDashboard() {
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [members, setMembers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'leads'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'leads' | 'members'>('overview');
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   const fetchLeads = async () => {
@@ -37,13 +51,70 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Erro ao buscar leads:', error);
       toast.error('Erro ao carregar leads');
-    } finally {
-      setLoading(false);
+    }
+  };
+
+  const fetchMembers = async () => {
+    if (!supabase) return;
+    
+    try {
+      // Fetch profiles with their stats
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (profilesError) throw profilesError;
+
+      // For each profile, fetch their stats
+      const membersWithStats = await Promise.all(
+        (profiles || []).map(async (profile: any) => {
+          if (!supabase) return null;
+
+          // Count campaigns sent
+          const { data: campaigns } = await supabase
+            .from('campaigns')
+            .select('sent_count')
+            .eq('user_id', profile.id);
+
+          const totalSent = campaigns?.reduce((sum: number, c: any) => sum + (c.sent_count || 0), 0) || 0;
+
+          // Count leads extracted
+          const { data: searches } = await supabase
+            .from('map_searches')
+            .select('total_results')
+            .eq('user_id', profile.id);
+
+          const totalLeads = searches?.reduce((sum: number, s: any) => sum + (s.total_results || 0), 0) || 0;
+
+          return {
+            id: profile.id,
+            full_name: profile.full_name || 'Sem nome',
+            email: '', // Will need to join with auth.users
+            role: profile.role,
+            status: profile.status,
+            last_access: profile.last_access,
+            created_at: profile.created_at,
+            campaigns_sent: totalSent,
+            leads_extracted: totalLeads
+          };
+        })
+      );
+
+      setMembers(membersWithStats.filter((m): m is UserProfile => m !== null));
+    } catch (error) {
+      console.error('Erro ao buscar membros:', error);
+      toast.error('Erro ao carregar membros');
     }
   };
 
   useEffect(() => {
-    fetchLeads();
+    const fetchData = async () => {
+      setLoading(true);
+      await Promise.all([fetchLeads(), fetchMembers()]);
+      setLoading(false);
+    };
+    fetchData();
   }, []);
 
   const handleStatusChange = async (leadId: string, newStatus: Lead['status']) => {
@@ -66,6 +137,77 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Erro ao atualizar status:', error);
       toast.error('Erro ao atualizar status');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleAcceptMember = async (leadId: string) => {
+    if (!supabase) return;
+    
+    setProcessingId(leadId);
+    try {
+      // Get the lead data
+      const { data: lead, error: leadError } = await supabase
+        .from('landing_leads')
+        .select('*')
+        .eq('id', leadId)
+        .single();
+
+      if (leadError) throw leadError;
+
+      // Create user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: lead.email,
+        password: lead.password || 'defaultPassword123',
+        options: {
+          data: {
+            full_name: lead.full_name
+          }
+        }
+      });
+
+      if (authError) throw authError;
+
+      // Update lead status to converted
+      const { error: updateError } = await supabase
+        .from('landing_leads')
+        .update({ 
+          status: 'converted',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', leadId);
+
+      if (updateError) throw updateError;
+      
+      toast.success('Membro aceito com sucesso! Usuário criado.');
+      fetchLeads();
+      fetchMembers();
+    } catch (error) {
+      console.error('Erro ao aceitar membro:', error);
+      toast.error('Erro ao aceitar membro');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleUpdateMemberStatus = async (profileId: string, newStatus: string) => {
+    if (!supabase) return;
+    
+    setProcessingId(profileId);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ status: newStatus })
+        .eq('id', profileId);
+
+      if (error) throw error;
+      
+      toast.success('Status do membro atualizado com sucesso');
+      fetchMembers();
+    } catch (error) {
+      console.error('Erro ao atualizar status do membro:', error);
+      toast.error('Erro ao atualizar status do membro');
     } finally {
       setProcessingId(null);
     }
@@ -128,7 +270,7 @@ export default function AdminDashboard() {
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 relative z-10">
         {/* Tabs */}
         <div className="flex gap-4 mb-8 border-b border-slate-200 pb-4">
-          {(['overview', 'leads'] as const).map((tab) => (
+          {(['overview', 'leads', 'members'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -140,6 +282,7 @@ export default function AdminDashboard() {
             >
               {tab === 'overview' && '📊 Visão Geral'}
               {tab === 'leads' && '👥 Leads'}
+              {tab === 'members' && '🔐 Membros'}
             </button>
           ))}
         </div>
@@ -306,6 +449,81 @@ export default function AdminDashboard() {
                           <MessageCircle size={14} />
                           WhatsApp
                         </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Members Tab */}
+        {activeTab === 'members' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden"
+          >
+            <div className="p-6 border-b border-slate-200">
+              <h2 className="text-xl font-black text-slate-900 flex items-center gap-3">
+                <Shield className="text-blue-500" size={24} />
+                Gerenciar Membros
+              </h2>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    <th className="text-left py-4 px-6 font-bold text-slate-700">Nome</th>
+                    <th className="text-left py-4 px-6 font-bold text-slate-700">Role</th>
+                    <th className="text-left py-4 px-6 font-bold text-slate-700">Status</th>
+                    <th className="text-left py-4 px-6 font-bold text-slate-700">Último Acesso</th>
+                    <th className="text-left py-4 px-6 font-bold text-slate-700">Disparos</th>
+                    <th className="text-left py-4 px-6 font-bold text-slate-700">Leads</th>
+                    <th className="text-left py-4 px-6 font-bold text-slate-700">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {members.map((member) => (
+                    <tr key={member.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <td className="py-4 px-6 font-bold text-slate-900">{member.full_name}</td>
+                      <td className="py-4 px-6">
+                        <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
+                          member.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          {member.role === 'admin' ? '👑 Admin' : '👤 User'}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6">
+                        <select
+                          value={member.status}
+                          onChange={(e) => handleUpdateMemberStatus(member.id, e.target.value)}
+                          disabled={processingId === member.id}
+                          className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50"
+                        >
+                          <option value="pending">⏳ Pendente</option>
+                          <option value="active">✓ Ativo</option>
+                          <option value="suspended">🚫 Suspenso</option>
+                        </select>
+                      </td>
+                      <td className="py-4 px-6 text-slate-500 text-xs">
+                        {member.last_access ? new Date(member.last_access).toLocaleDateString('pt-BR') : 'Nunca'}
+                      </td>
+                      <td className="py-4 px-6 font-bold text-slate-900">{member.campaigns_sent}</td>
+                      <td className="py-4 px-6 font-bold text-slate-900">{member.leads_extracted}</td>
+                      <td className="py-4 px-6">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleUpdateMemberStatus(member.id, 'active')}
+                            disabled={processingId === member.id}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+                          >
+                            <CheckCircle2 size={14} />
+                            Ativar
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

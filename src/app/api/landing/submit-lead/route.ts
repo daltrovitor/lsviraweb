@@ -11,9 +11,9 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, email, whatsapp } = body;
+    const { name, email, whatsapp, password } = body;
 
-    if (!name || !email || !whatsapp) {
+    if (!name || !email || !whatsapp || !password) {
       return NextResponse.json(
         { error: 'Todos os campos são obrigatórios' },
         { status: 400 }
@@ -27,6 +27,7 @@ export async function POST(request: Request) {
         full_name: name,
         email: email,
         whatsapp: whatsapp,
+        password: password,
         status: 'pending'
       })
       .select()
