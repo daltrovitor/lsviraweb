@@ -11,7 +11,7 @@ export function middleware(request: NextRequest) {
   const subdomain = hostname.split('.')[0];
   
   // Subdomain routing for admin
-  if (subdomain === 'adminls' || subdomain === 'admin') {
+  if (subdomain === 'adminls' || subdomain === 'admin' || subdomain === 'lsadmin') {
     // Admin subdomain - serve admin dashboard
     if (pathname === '/') {
       const url = request.nextUrl.clone();
