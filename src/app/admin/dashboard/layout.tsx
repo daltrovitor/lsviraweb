@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { headers } from 'next/headers';
 
 export default async function AdminDashboardLayout({
   children,
@@ -8,7 +9,7 @@ export default async function AdminDashboardLayout({
 }) {
   if (!supabase) {
     console.error('Supabase not configured');
-    redirect('/');
+    redirect('/login');
   }
 
   // Check authentication
@@ -16,7 +17,7 @@ export default async function AdminDashboardLayout({
   
   if (!session) {
     console.error('No session found');
-    redirect('/');
+    redirect('/login');
   }
 
   console.log('Session found for user:', session.user.id);
@@ -48,7 +49,7 @@ export default async function AdminDashboardLayout({
     }
   } else if (profile.role !== 'admin') {
     console.error('User is not admin:', profile.role);
-    redirect('/');
+    redirect('/login');
   }
 
   return <>{children}</>;
