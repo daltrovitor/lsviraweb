@@ -62,9 +62,9 @@ export default async function AdminDashboardLayout({
     redirect('/admin/login');
   }
   
-  // Check if user is admin and active
-  if (profile.role !== 'admin' || profile.status !== 'active') {
-    console.error('[AdminDashboardLayout] User is not admin or not active:', profile.role, profile.status);
+  // Check if user is admin (don't check status to avoid blocking admins with different status values)
+  if (profile.role !== 'admin') {
+    console.error('[AdminDashboardLayout] User is not admin:', profile.role);
     redirect('/admin/login');
   }
 
