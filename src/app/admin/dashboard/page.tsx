@@ -364,8 +364,9 @@ export default function AdminDashboard() {
             <div className="p-6 border-b border-slate-200">
               <h2 className="text-xl font-black text-slate-900 flex items-center gap-3">
                 <Shield className="text-blue-500" size={24} />
-                Gerenciar Membros
+                Membros Cadastrados
               </h2>
+              <p className="text-sm text-slate-500 mt-1">Usuários que se cadastraram diretamente (não precisam de aprovação)</p>
             </div>
             
             <div className="overflow-x-auto">
@@ -399,7 +400,6 @@ export default function AdminDashboard() {
                           disabled={processingId === member.id}
                           className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50"
                         >
-                          <option value="pending">⏳ Pendente</option>
                           <option value="active">✓ Ativo</option>
                           <option value="suspended">🚫 Suspenso</option>
                         </select>
@@ -411,16 +411,6 @@ export default function AdminDashboard() {
                       <td className="py-4 px-6 font-bold text-slate-900">{member.leads_extracted}</td>
                       <td className="py-4 px-6">
                         <div className="flex gap-2">
-                          {member.status !== 'active' && (
-                            <button
-                              onClick={() => handleUpdateMemberStatus(member.id, 'active')}
-                              disabled={processingId === member.id}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
-                            >
-                              <CheckCircle2 size={14} />
-                              Aprovar
-                            </button>
-                          )}
                           {member.status === 'active' && (
                             <button
                               onClick={() => handleUpdateMemberStatus(member.id, 'suspended')}
@@ -429,6 +419,16 @@ export default function AdminDashboard() {
                             >
                               <Ban size={14} />
                               Suspender
+                            </button>
+                          )}
+                          {member.status === 'suspended' && (
+                            <button
+                              onClick={() => handleUpdateMemberStatus(member.id, 'active')}
+                              disabled={processingId === member.id}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+                            >
+                              <CheckCircle2 size={14} />
+                              Reativar
                             </button>
                           )}
                         </div>
