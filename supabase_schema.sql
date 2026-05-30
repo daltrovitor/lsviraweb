@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   company TEXT,
   phone TEXT,
   role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin')),
-  status TEXT DEFAULT 'pending',
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'suspended')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   last_access TIMESTAMP WITH TIME ZONE
 );
