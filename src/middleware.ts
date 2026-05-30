@@ -30,6 +30,10 @@ export function middleware(request: NextRequest) {
       url.pathname = '/admin/dashboard';
       return NextResponse.rewrite(url);
     }
+    // If pathname already starts with /admin, serve as-is
+    if (pathname.startsWith('/admin')) {
+      return NextResponse.next();
+    }
     // Don't duplicate /admin if pathname already starts with it
     const url = request.nextUrl.clone();
     url.pathname = pathname.startsWith('/admin') ? pathname : `/admin${pathname}`;
