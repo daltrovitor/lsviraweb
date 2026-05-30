@@ -154,7 +154,8 @@ CREATE TABLE IF NOT EXISTS public.landing_leads (
   full_name TEXT NOT NULL,
   email TEXT NOT NULL,
   whatsapp TEXT NOT NULL,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'contacted', 'converted', 'lost')),
+  password TEXT, -- Password to be set by admin when approving member
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
   notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL

@@ -8,6 +8,7 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isApproved, setIsApproved] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!supabase) {
@@ -17,6 +18,20 @@ export function useAuth() {
     const { data } = await supabase.auth.getSession();
     setSession(data.session);
     setUser(data.session?.user ?? null);
+    
+    // Check if user is approved
+    if (data.session?.user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('status')
+        .eq('id', data.session.user.id)
+        .single();
+      
+      setIsApproved(profile?.status === 'active');
+    } else {
+      setIsApproved(false);
+    }
+    
     setLoading(false);
   }, []);
 
@@ -24,9 +39,23 @@ export function useAuth() {
     refresh();
     if (!supabase) return;
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       setSession(newSession);
       setUser(newSession?.user ?? null);
+      
+      // Check if user is approved
+      if (newSession?.user && supabase) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('status')
+          .eq('id', newSession.user.id)
+          .single();
+        
+        setIsApproved(profile?.status === 'active');
+      } else {
+        setIsApproved(false);
+      }
+      
       setLoading(false);
     });
 
@@ -37,7 +66,8 @@ export function useAuth() {
     if (supabase) await supabase.auth.signOut();
     setUser(null);
     setSession(null);
+    setIsApproved(false);
   }, []);
 
-  return { user, session, loading, signOut, refresh, isConfigured: !!supabase };
+  return { user, session, loading, signOut, refresh, isConfigured: !!supabase, isApproved };
 }

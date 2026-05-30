@@ -13,12 +13,12 @@ import { Badge } from '@/components/ui/badge';
 
 export function LoginForm({ redirectTo = '/dashboard', disableAutoRedirect = false }: { redirectTo?: string; disableAutoRedirect?: boolean }) {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isApproved } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
 
   useEffect(() => {
-    if (!disableAutoRedirect && !authLoading && user) router.replace(redirectTo);
-  }, [user, authLoading, router, redirectTo, disableAutoRedirect]);
+    if (!disableAutoRedirect && !authLoading && user && isApproved) router.replace(redirectTo);
+  }, [user, authLoading, isApproved, router, redirectTo, disableAutoRedirect]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -126,6 +126,12 @@ export function LoginForm({ redirectTo = '/dashboard', disableAutoRedirect = fal
           {!configured && (
             <div className="mb-4 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-medium">
               Configure NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY no .env
+            </div>
+          )}
+
+          {user && !isApproved && (
+            <div className="mb-4 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-medium">
+              ⏳ Sua conta está pendente de aprovação pelo administrador. Aguarde o contato.
             </div>
           )}
 

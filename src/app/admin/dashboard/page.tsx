@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle2, XCircle, Users, MessageSquare, TrendingUp, LogOut, Loader2, AlertCircle, Phone, Mail, Calendar, Clock, MessageCircle, Shield } from 'lucide-react';
+import { CheckCircle2, XCircle, Users, LogOut, Loader2, AlertCircle, Phone, Mail, Calendar, Clock, MessageCircle, Shield, UserPlus, Ban, Key } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 
@@ -12,7 +12,7 @@ type Lead = {
   email: string;
   whatsapp: string;
   password?: string;
-  status: 'pending' | 'contacted' | 'converted' | 'lost';
+  status: 'pending' | 'approved' | 'rejected';
   notes: string;
   created_at: string;
   updated_at: string;
@@ -34,8 +34,9 @@ export default function AdminDashboard() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [members, setMembers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'leads' | 'members'>('overview');
+  const [activeTab, setActiveTab] = useState<'members' | 'pending'>('members');
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [passwordInput, setPasswordInput] = useState<{ [key: string]: string }>({});
 
   const fetchLeads = async () => {
     if (!supabase) return;
@@ -79,7 +80,7 @@ export default function AdminDashboard() {
 
           const totalSent = campaigns?.reduce((sum: number, c: any) => sum + (c.sent_count || 0), 0) || 0;
 
-          // Count leads extracted
+          // Count leads extracted from map_searches
           const { data: searches } = await supabase
             .from('map_searches')
             .select('total_results')
@@ -117,34 +118,15 @@ export default function AdminDashboard() {
     fetchData();
   }, []);
 
-  const handleStatusChange = async (leadId: string, newStatus: Lead['status']) => {
+  const handleApproveLead = async (leadId: string) => {
     if (!supabase) return;
     
-    setProcessingId(leadId);
-    try {
-      const { error } = await supabase
-        .from('landing_leads')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', leadId);
-
-      if (error) throw error;
-      
-      toast.success('Status atualizado com sucesso');
-      fetchLeads();
-    } catch (error) {
-      console.error('Erro ao atualizar status:', error);
-      toast.error('Erro ao atualizar status');
-    } finally {
-      setProcessingId(null);
+    const password = passwordInput[leadId];
+    if (!password) {
+      toast.error('Por favor, defina uma senha para o novo membro');
+      return;
     }
-  };
 
-  const handleAcceptMember = async (leadId: string) => {
-    if (!supabase) return;
-    
     setProcessingId(leadId);
     try {
       // Get the lead data
@@ -159,7 +141,7 @@ export default function AdminDashboard() {
       // Create user in Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: lead.email,
-        password: lead.password || 'defaultPassword123',
+        password: password,
         options: {
           data: {
             full_name: lead.full_name
@@ -169,23 +151,50 @@ export default function AdminDashboard() {
 
       if (authError) throw authError;
 
-      // Update lead status to converted
+      // Update lead status to approved
       const { error: updateError } = await supabase
         .from('landing_leads')
         .update({ 
-          status: 'converted',
+          status: 'approved',
+          password: password,
           updated_at: new Date().toISOString()
         })
         .eq('id', leadId);
 
       if (updateError) throw updateError;
       
-      toast.success('Membro aceito com sucesso! Usuário criado.');
+      toast.success('Membro aprovado com sucesso! Usuário criado.');
+      setPasswordInput({ ...passwordInput, [leadId]: '' });
       fetchLeads();
       fetchMembers();
     } catch (error) {
-      console.error('Erro ao aceitar membro:', error);
-      toast.error('Erro ao aceitar membro');
+      console.error('Erro ao aprovar membro:', error);
+      toast.error('Erro ao aprovar membro');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleRejectLead = async (leadId: string) => {
+    if (!supabase) return;
+    
+    setProcessingId(leadId);
+    try {
+      const { error } = await supabase
+        .from('landing_leads')
+        .update({ 
+          status: 'rejected',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', leadId);
+
+      if (error) throw error;
+      
+      toast.success('Lead rejeitado com sucesso');
+      fetchLeads();
+    } catch (error) {
+      console.error('Erro ao rejeitar lead:', error);
+      toast.error('Erro ao rejeitar lead');
     } finally {
       setProcessingId(null);
     }
@@ -219,11 +228,12 @@ export default function AdminDashboard() {
   };
 
   const stats = {
-    total: leads.length,
-    pending: leads.filter(l => l.status === 'pending').length,
-    contacted: leads.filter(l => l.status === 'contacted').length,
-    converted: leads.filter(l => l.status === 'converted').length,
-    lost: leads.filter(l => l.status === 'lost').length,
+    totalMembers: members.length,
+    activeMembers: members.filter(m => m.status === 'active').length,
+    pendingMembers: members.filter(m => m.status === 'pending').length,
+    pendingLeads: leads.filter(l => l.status === 'pending').length,
+    totalCampaigns: members.reduce((sum, m) => sum + m.campaigns_sent, 0),
+    totalLeads: members.reduce((sum, m) => sum + m.leads_extracted, 0),
   };
 
   if (loading) {
@@ -268,9 +278,67 @@ export default function AdminDashboard() {
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 relative z-10">
+        {/* Stats Grid */}
+        <div className="grid md:grid-cols-5 gap-6 mb-8">
+          {[
+            {
+              icon: Users,
+              label: 'Total Membros',
+              value: stats.totalMembers,
+              color: 'from-blue-500 to-blue-600',
+              bg: 'bg-blue-50'
+            },
+            {
+              icon: CheckCircle2,
+              label: 'Membros Ativos',
+              value: stats.activeMembers,
+              color: 'from-emerald-500 to-emerald-600',
+              bg: 'bg-emerald-50'
+            },
+            {
+              icon: Clock,
+              label: 'Pendentes',
+              value: stats.pendingMembers + stats.pendingLeads,
+              color: 'from-amber-500 to-amber-600',
+              bg: 'bg-amber-50'
+            },
+            {
+              icon: MessageCircle,
+              label: 'Total Disparos',
+              value: stats.totalCampaigns,
+              color: 'from-purple-500 to-purple-600',
+              bg: 'bg-purple-50'
+            },
+            {
+              icon: Shield,
+              label: 'Total Leads',
+              value: stats.totalLeads,
+              color: 'from-indigo-500 to-indigo-600',
+              bg: 'bg-indigo-50'
+            }
+          ].map((stat, idx) => {
+            const Icon = stat.icon;
+            return (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.1 }}
+                className={`bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all`}
+              >
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} text-white flex items-center justify-center mb-4 shadow-lg`}>
+                  <Icon size={20} />
+                </div>
+                <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">{stat.label}</p>
+                <p className="text-3xl font-black text-slate-900 mt-1">{stat.value}</p>
+              </motion.div>
+            );
+          })}
+        </div>
+
         {/* Tabs */}
         <div className="flex gap-4 mb-8 border-b border-slate-200 pb-4">
-          {(['overview', 'leads', 'members'] as const).map((tab) => (
+          {(['members', 'pending'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -280,183 +348,11 @@ export default function AdminDashboard() {
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              {tab === 'overview' && '📊 Visão Geral'}
-              {tab === 'leads' && '👥 Leads'}
-              {tab === 'members' && '🔐 Membros'}
+              {tab === 'members' && '� Membros Aprovados'}
+              {tab === 'pending' && '📋 Solicitações Pendentes'}
             </button>
           ))}
         </div>
-
-        {/* Overview Tab */}
-        {activeTab === 'overview' && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="space-y-6"
-          >
-            {/* Stats Grid */}
-            <div className="grid md:grid-cols-5 gap-6">
-              {[
-                {
-                  icon: Users,
-                  label: 'Total de Leads',
-                  value: stats.total,
-                  color: 'from-blue-500 to-blue-600',
-                  bg: 'bg-blue-50'
-                },
-                {
-                  icon: Clock,
-                  label: 'Pendentes',
-                  value: stats.pending,
-                  color: 'from-amber-500 to-amber-600',
-                  bg: 'bg-amber-50'
-                },
-                {
-                  icon: MessageCircle,
-                  label: 'Contactados',
-                  value: stats.contacted,
-                  color: 'from-purple-500 to-purple-600',
-                  bg: 'bg-purple-50'
-                },
-                {
-                  icon: CheckCircle2,
-                  label: 'Convertidos',
-                  value: stats.converted,
-                  color: 'from-emerald-500 to-emerald-600',
-                  bg: 'bg-emerald-50'
-                },
-                {
-                  icon: XCircle,
-                  label: 'Perdidos',
-                  value: stats.lost,
-                  color: 'from-red-500 to-red-600',
-                  bg: 'bg-red-50'
-                }
-              ].map((stat, idx) => {
-                const Icon = stat.icon;
-                return (
-                  <motion.div
-                    key={idx}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.1 }}
-                    className={`bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all`}
-                  >
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} text-white flex items-center justify-center mb-4 shadow-lg`}>
-                      <Icon size={20} />
-                    </div>
-                    <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">{stat.label}</p>
-                    <p className="text-3xl font-black text-slate-900 mt-1">{stat.value}</p>
-                  </motion.div>
-                );
-              })}
-            </div>
-
-            {/* Recent Activity */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-              <h2 className="text-xl font-black text-slate-900 mb-4 flex items-center gap-3">
-                <TrendingUp className="text-blue-500" size={24} />
-                Leads Recentes
-              </h2>
-              <div className="space-y-3">
-                {leads.slice(0, 5).map((lead) => (
-                  <div key={lead.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold">
-                        {lead.full_name.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="font-bold text-slate-900">{lead.full_name}</p>
-                        <p className="text-xs text-slate-500">{lead.email}</p>
-                      </div>
-                    </div>
-                    <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
-                      lead.status === 'pending' && 'bg-amber-100 text-amber-700'
-                    } || (lead.status === 'contacted' && 'bg-purple-100 text-purple-700')
-                    } || (lead.status === 'converted' && 'bg-emerald-100 text-emerald-700')
-                    } || (lead.status === 'lost' && 'bg-red-100 text-red-700')
-                    }`}>
-                      {lead.status === 'pending' && '⏳ Pendente'}
-                      {lead.status === 'contacted' && '📞 Contactado'}
-                      {lead.status === 'converted' && '✓ Convertido'}
-                      {lead.status === 'lost' && '✗ Perdido'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Leads Tab */}
-        {activeTab === 'leads' && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden"
-          >
-            <div className="p-6 border-b border-slate-200">
-              <h2 className="text-xl font-black text-slate-900 flex items-center gap-3">
-                <Users className="text-blue-500" size={24} />
-                Gerenciar Leads
-              </h2>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="text-left py-4 px-6 font-bold text-slate-700">Nome</th>
-                    <th className="text-left py-4 px-6 font-bold text-slate-700">Email</th>
-                    <th className="text-left py-4 px-6 font-bold text-slate-700">WhatsApp</th>
-                    <th className="text-left py-4 px-6 font-bold text-slate-700">Status</th>
-                    <th className="text-left py-4 px-6 font-bold text-slate-700">Data</th>
-                    <th className="text-left py-4 px-6 font-bold text-slate-700">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {leads.map((lead) => (
-                    <tr key={lead.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                      <td className="py-4 px-6 font-bold text-slate-900">{lead.full_name}</td>
-                      <td className="py-4 px-6 text-slate-600">{lead.email}</td>
-                      <td className="py-4 px-6 text-slate-600 flex items-center gap-2">
-                        <MessageCircle size={16} className="text-emerald-500" />
-                        {lead.whatsapp}
-                      </td>
-                      <td className="py-4 px-6">
-                        <select
-                          value={lead.status}
-                          onChange={(e) => handleStatusChange(lead.id, e.target.value as Lead['status'])}
-                          disabled={processingId === lead.id}
-                          className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50"
-                        >
-                          <option value="pending">⏳ Pendente</option>
-                          <option value="contacted">📞 Contactado</option>
-                          <option value="converted">✓ Convertido</option>
-                          <option value="lost">✗ Perdido</option>
-                        </select>
-                      </td>
-                      <td className="py-4 px-6 text-slate-500 text-xs">
-                        {new Date(lead.created_at).toLocaleDateString('pt-BR')}
-                      </td>
-                      <td className="py-4 px-6">
-                        <a
-                          href={`https://wa.me/55${lead.whatsapp.replace(/\D/g, '')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-colors"
-                        >
-                          <MessageCircle size={14} />
-                          WhatsApp
-                        </a>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </motion.div>
-        )}
 
         {/* Members Tab */}
         {activeTab === 'members' && (
@@ -481,7 +377,7 @@ export default function AdminDashboard() {
                     <th className="text-left py-4 px-6 font-bold text-slate-700">Status</th>
                     <th className="text-left py-4 px-6 font-bold text-slate-700">Último Acesso</th>
                     <th className="text-left py-4 px-6 font-bold text-slate-700">Disparos</th>
-                    <th className="text-left py-4 px-6 font-bold text-slate-700">Leads</th>
+                    <th className="text-left py-4 px-6 font-bold text-slate-700">Leads Coletados</th>
                     <th className="text-left py-4 px-6 font-bold text-slate-700">Ações</th>
                   </tr>
                 </thead>
@@ -515,20 +411,125 @@ export default function AdminDashboard() {
                       <td className="py-4 px-6 font-bold text-slate-900">{member.leads_extracted}</td>
                       <td className="py-4 px-6">
                         <div className="flex gap-2">
-                          <button
-                            onClick={() => handleUpdateMemberStatus(member.id, 'active')}
-                            disabled={processingId === member.id}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
-                          >
-                            <CheckCircle2 size={14} />
-                            Ativar
-                          </button>
+                          {member.status !== 'active' && (
+                            <button
+                              onClick={() => handleUpdateMemberStatus(member.id, 'active')}
+                              disabled={processingId === member.id}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+                            >
+                              <CheckCircle2 size={14} />
+                              Aprovar
+                            </button>
+                          )}
+                          {member.status === 'active' && (
+                            <button
+                              onClick={() => handleUpdateMemberStatus(member.id, 'suspended')}
+                              disabled={processingId === member.id}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+                            >
+                              <Ban size={14} />
+                              Suspender
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Pending Requests Tab */}
+        {activeTab === 'pending' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden"
+          >
+            <div className="p-6 border-b border-slate-200">
+              <h2 className="text-xl font-black text-slate-900 flex items-center gap-3">
+                <UserPlus className="text-blue-500" size={24} />
+                Solicitações de Membro
+              </h2>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    <th className="text-left py-4 px-6 font-bold text-slate-700">Nome</th>
+                    <th className="text-left py-4 px-6 font-bold text-slate-700">Email</th>
+                    <th className="text-left py-4 px-6 font-bold text-slate-700">WhatsApp</th>
+                    <th className="text-left py-4 px-6 font-bold text-slate-700">Senha</th>
+                    <th className="text-left py-4 px-6 font-bold text-slate-700">Data</th>
+                    <th className="text-left py-4 px-6 font-bold text-slate-700">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {leads.filter(l => l.status === 'pending').map((lead) => (
+                    <tr key={lead.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <td className="py-4 px-6 font-bold text-slate-900">{lead.full_name}</td>
+                      <td className="py-4 px-6 text-slate-600">{lead.email}</td>
+                      <td className="py-4 px-6 text-slate-600 flex items-center gap-2">
+                        <MessageCircle size={16} className="text-emerald-500" />
+                        {lead.whatsapp}
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-2">
+                          <Key size={16} className="text-slate-400" />
+                          <input
+                            type="password"
+                            placeholder="Definir senha"
+                            value={passwordInput[lead.id] || ''}
+                            onChange={(e) => setPasswordInput({ ...passwordInput, [lead.id]: e.target.value })}
+                            className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 w-40"
+                          />
+                        </div>
+                      </td>
+                      <td className="py-4 px-6 text-slate-500 text-xs">
+                        {new Date(lead.created_at).toLocaleDateString('pt-BR')}
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleApproveLead(lead.id)}
+                            disabled={processingId === lead.id}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+                          >
+                            <CheckCircle2 size={14} />
+                            Aprovar
+                          </button>
+                          <button
+                            onClick={() => handleRejectLead(lead.id)}
+                            disabled={processingId === lead.id}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+                          >
+                            <XCircle size={14} />
+                            Rejeitar
+                          </button>
+                          <a
+                            href={`https://wa.me/55${lead.whatsapp.replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition-colors"
+                          >
+                            <MessageCircle size={14} />
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              
+              {leads.filter(l => l.status === 'pending').length === 0 && (
+                <div className="p-12 text-center">
+                  <UserPlus size={48} className="text-slate-300 mx-auto mb-4" />
+                  <p className="text-slate-500 font-medium">Nenhuma solicitação pendente</p>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

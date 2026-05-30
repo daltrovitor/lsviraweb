@@ -7,53 +7,41 @@ export default async function AdminDashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Temporarily disable authentication check to prevent redirect loop
-  // TODO: Re-enable authentication check after fixing the loop issue
+  if (!supabase) {
+    console.error('Supabase not configured');
+    redirect('/admin/login');
+  }
+
+  // Check authentication
+  const { data: { session } } = await supabase.auth.getSession();
   
-  // if (!supabase) {
-  //   console.error('Supabase not configured');
-  //   redirect('/admin/login');
-  // }
+  if (!session) {
+    console.error('No session found');
+    redirect('/admin/login');
+  }
 
-  // // Check authentication
-  // const { data: { session } } = await supabase.auth.getSession();
+  console.log('Session found for user:', session.user.id);
+
+  // Check user role and status
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('role, status')
+    .eq('id', session.user.id)
+    .single();
+
+  console.log('Profile data:', profile, 'Error:', error);
+
+  // If profile doesn't exist, redirect to login (don't auto-create admin profile)
+  if (error || !profile) {
+    console.error('Profile not found for user:', session.user.id);
+    redirect('/admin/login');
+  }
   
-  // if (!session) {
-  //   console.error('No session found');
-  //   redirect('/admin/login');
-  // }
-
-  // console.log('Session found for user:', session.user.id);
-
-  // // Check user role - temporarily allow access for debugging
-  // const { data: profile, error } = await supabase
-  //   .from('profiles')
-  //   .select('role, status')
-  //   .eq('id', session.user.id)
-  //   .single();
-
-  // console.log('Profile data:', profile, 'Error:', error);
-
-  // // If profile doesn't exist, create it with admin role
-  // if (error || !profile) {
-  //   console.log('Profile not found, creating admin profile for user:', session.user.id);
-  //   const { error: insertError } = await supabase
-  //     .from('profiles')
-  //     .insert({
-  //       id: session.user.id,
-  //       full_name: session.user.user_metadata?.full_name || 'Admin',
-  //       role: 'admin',
-  //       status: 'active'
-  //     });
-    
-  //   if (insertError) {
-  //     console.error('Error creating profile:', insertError);
-  //     // Still allow access for first-time setup
-  //   }
-  // } else if (profile.role !== 'admin') {
-  //   console.error('User is not admin:', profile.role);
-  //   redirect('/admin/login');
-  // }
+  // Check if user is admin and active
+  if (profile.role !== 'admin' || profile.status !== 'active') {
+    console.error('User is not admin or not active:', profile.role, profile.status);
+    redirect('/admin/login');
+  }
 
   return <>{children}</>;
 }
