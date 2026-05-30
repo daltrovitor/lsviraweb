@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const PUBLIC_PATHS = ['/login', '/admin/login', '/landing', '/admin/dashboard', '/'];
+const PUBLIC_PATHS = ['/login', '/landing', '/admin/dashboard', '/'];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -15,7 +15,7 @@ export function middleware(request: NextRequest) {
     // Admin subdomain - serve admin dashboard
     if (pathname === '/') {
       const url = request.nextUrl.clone();
-      url.pathname = '/admin/login';
+      url.pathname = '/admin/dashboard';
       return NextResponse.rewrite(url);
     }
     // Don't duplicate /admin if pathname already starts with it

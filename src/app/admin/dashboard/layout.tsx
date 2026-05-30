@@ -8,7 +8,7 @@ export default async function AdminDashboardLayout({
 }) {
   if (!supabase) {
     console.error('Supabase not configured');
-    redirect('/admin/login');
+    redirect('/');
   }
 
   // Check authentication
@@ -16,7 +16,7 @@ export default async function AdminDashboardLayout({
   
   if (!session) {
     console.error('No session found');
-    redirect('/admin/login');
+    redirect('/');
   }
 
   console.log('Session found for user:', session.user.id);
@@ -30,15 +30,25 @@ export default async function AdminDashboardLayout({
 
   console.log('Profile data:', profile, 'Error:', error);
 
-  // Temporarily allow access even if role check fails for debugging
-  if (error) {
-    console.error('Error fetching profile:', error);
-    // Don't redirect, allow access for debugging
-  }
-
-  if (profile && profile.role !== 'admin') {
+  // If profile doesn't exist, create it with admin role
+  if (error || !profile) {
+    console.log('Profile not found, creating admin profile for user:', session.user.id);
+    const { error: insertError } = await supabase
+      .from('profiles')
+      .insert({
+        id: session.user.id,
+        full_name: session.user.user_metadata?.full_name || 'Admin',
+        role: 'admin',
+        status: 'active'
+      });
+    
+    if (insertError) {
+      console.error('Error creating profile:', insertError);
+      // Still allow access for first-time setup
+    }
+  } else if (profile.role !== 'admin') {
     console.error('User is not admin:', profile.role);
-    // Don't redirect, allow access for debugging
+    redirect('/');
   }
 
   return <>{children}</>;
