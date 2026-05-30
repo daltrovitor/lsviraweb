@@ -19,14 +19,17 @@ export function useAuth() {
     setSession(data.session);
     setUser(data.session?.user ?? null);
     
+    console.log('[use-auth] refresh - session:', !!data.session, 'user:', !!data.session?.user);
+    
     // Check if user is approved
     if (data.session?.user) {
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('status')
         .eq('id', data.session.user.id)
         .maybeSingle();
       
+      console.log('[use-auth] refresh - profile:', profile, 'error:', error);
       setIsApproved(profile?.status === 'active');
     } else {
       setIsApproved(false);
@@ -40,17 +43,19 @@ export function useAuth() {
     if (!supabase) return;
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+      console.log('[use-auth] onAuthStateChange - event:', _event, 'session:', !!newSession);
       setSession(newSession);
       setUser(newSession?.user ?? null);
       
       // Check if user is approved
       if (newSession?.user && supabase) {
-        const { data: profile } = await supabase
+        const { data: profile, error } = await supabase
           .from('profiles')
           .select('status')
           .eq('id', newSession.user.id)
           .maybeSingle();
         
+        console.log('[use-auth] onAuthStateChange - profile:', profile, 'error:', error);
         setIsApproved(profile?.status === 'active');
       } else {
         setIsApproved(false);
