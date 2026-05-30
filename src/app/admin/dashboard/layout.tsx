@@ -1,16 +1,30 @@
 import { redirect } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
-import { headers } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 export default async function AdminDashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  if (!supabase) {
+  const cookieStore = cookies();
+  
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
     console.error('Supabase not configured');
     redirect('/admin/login');
   }
+
+  // Create server client that can read cookies
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      get(name: string) {
+        return cookieStore.get(name)?.value;
+      },
+    },
+  });
 
   // Check authentication
   const { data: { session } } = await supabase.auth.getSession();
