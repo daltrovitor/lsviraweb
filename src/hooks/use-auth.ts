@@ -25,7 +25,7 @@ export function useAuth() {
         .from('profiles')
         .select('status')
         .eq('id', data.session.user.id)
-        .single();
+        .maybeSingle();
       
       setIsApproved(profile?.status === 'active');
     } else {
@@ -49,7 +49,7 @@ export function useAuth() {
           .from('profiles')
           .select('status')
           .eq('id', newSession.user.id)
-          .single();
+          .maybeSingle();
         
         setIsApproved(profile?.status === 'active');
       } else {

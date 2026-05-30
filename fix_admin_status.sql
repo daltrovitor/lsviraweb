@@ -4,10 +4,10 @@
 -- 1. Remover a constraint antiga que não permite 'active'
 ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_status_check;
 
--- 2. Adicionar a constraint correta que permite 'pending', 'active', 'inactive'
+-- 2. Adicionar a constraint correta que permite 'pending', 'active', 'suspended'
 ALTER TABLE public.profiles 
 ADD CONSTRAINT profiles_status_check 
-CHECK (status IN ('pending', 'active', 'inactive'));
+CHECK (status IN ('pending', 'active', 'suspended'));
 
 -- 3. Atualizar o status do admin para 'active'
 UPDATE public.profiles
