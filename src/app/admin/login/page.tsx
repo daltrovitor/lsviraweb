@@ -37,7 +37,23 @@ export default function AdminLogin() {
         .eq('id', data.user.id)
         .single();
 
-      if (profileError || !profile || profile.role !== 'admin') {
+      // If profile doesn't exist, create it with admin role
+      if (profileError || !profile) {
+        console.log('Profile not found, creating admin profile');
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            full_name: data.user.user_metadata?.full_name || 'Admin',
+            role: 'admin',
+            status: 'active'
+          });
+        
+        if (insertError) {
+          console.error('Error creating profile:', insertError);
+          // Continue anyway for first-time setup
+        }
+      } else if (profile.role !== 'admin') {
         await supabase.auth.signOut();
         toast.error('Acesso negado. Apenas administradores podem acessar este painel.');
         return;
