@@ -18,8 +18,9 @@ export function middleware(request: NextRequest) {
       url.pathname = '/admin/login';
       return NextResponse.rewrite(url);
     }
+    // Don't duplicate /admin if pathname already starts with it
     const url = request.nextUrl.clone();
-    url.pathname = `/admin${pathname}`;
+    url.pathname = pathname.startsWith('/admin') ? pathname : `/admin${pathname}`;
     return NextResponse.rewrite(url);
   }
   
