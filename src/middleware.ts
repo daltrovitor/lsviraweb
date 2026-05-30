@@ -18,6 +18,16 @@ export function middleware(request: NextRequest) {
       url.pathname = '/admin/dashboard';
       return NextResponse.rewrite(url);
     }
+    // Keep /login as is (don't add /admin prefix)
+    if (pathname === '/login') {
+      return NextResponse.next();
+    }
+    // Keep /dashboard as /admin/dashboard
+    if (pathname === '/dashboard') {
+      const url = request.nextUrl.clone();
+      url.pathname = '/admin/dashboard';
+      return NextResponse.rewrite(url);
+    }
     // Don't duplicate /admin if pathname already starts with it
     const url = request.nextUrl.clone();
     url.pathname = pathname.startsWith('/admin') ? pathname : `/admin${pathname}`;
