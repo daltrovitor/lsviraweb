@@ -11,14 +11,14 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
-export function LoginForm() {
+export function LoginForm({ redirectTo = '/dashboard' }: { redirectTo?: string }) {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
 
   useEffect(() => {
-    if (!authLoading && user) router.replace('/dashboard');
-  }, [user, authLoading, router]);
+    if (!authLoading && user) router.replace(redirectTo);
+  }, [user, authLoading, router, redirectTo]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -46,7 +46,7 @@ export function LoginForm() {
           password,
         });
         if (authErr) throw authErr;
-        router.replace('/dashboard');
+        router.replace(redirectTo);
         router.refresh();
       } else {
         const { error: authErr } = await supabase.auth.signUp({

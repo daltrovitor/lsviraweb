@@ -18,9 +18,11 @@ export function middleware(request: NextRequest) {
       url.pathname = '/admin/dashboard';
       return NextResponse.rewrite(url);
     }
-    // Keep /login as is (don't add /admin prefix)
+    // Rewrite /login to /admin/login
     if (pathname === '/login') {
-      return NextResponse.next();
+      const url = request.nextUrl.clone();
+      url.pathname = '/admin/login';
+      return NextResponse.rewrite(url);
     }
     // Keep /dashboard as /admin/dashboard
     if (pathname === '/dashboard') {
