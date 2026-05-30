@@ -11,14 +11,14 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
-export function LoginForm({ redirectTo = '/dashboard' }: { redirectTo?: string }) {
+export function LoginForm({ redirectTo = '/dashboard', disableAutoRedirect = false }: { redirectTo?: string; disableAutoRedirect?: boolean }) {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
 
   useEffect(() => {
-    if (!authLoading && user) router.replace(redirectTo);
-  }, [user, authLoading, router, redirectTo]);
+    if (!disableAutoRedirect && !authLoading && user) router.replace(redirectTo);
+  }, [user, authLoading, router, redirectTo, disableAutoRedirect]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');

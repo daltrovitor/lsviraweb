@@ -12,6 +12,10 @@ export function middleware(request: NextRequest) {
   
   // Subdomain routing for admin
   if (subdomain === 'adminls' || subdomain === 'admin' || subdomain === 'lsadmin') {
+    // If pathname already starts with /admin, serve as-is without any rewrites
+    if (pathname.startsWith('/admin')) {
+      return NextResponse.next();
+    }
     // Admin subdomain - serve admin dashboard
     if (pathname === '/') {
       const url = request.nextUrl.clone();
@@ -30,13 +34,9 @@ export function middleware(request: NextRequest) {
       url.pathname = '/admin/dashboard';
       return NextResponse.rewrite(url);
     }
-    // If pathname already starts with /admin, serve as-is
-    if (pathname.startsWith('/admin')) {
-      return NextResponse.next();
-    }
-    // Don't duplicate /admin if pathname already starts with it
+    // For other paths, add /admin prefix
     const url = request.nextUrl.clone();
-    url.pathname = pathname.startsWith('/admin') ? pathname : `/admin${pathname}`;
+    url.pathname = `/admin${pathname}`;
     return NextResponse.rewrite(url);
   }
   

@@ -12,7 +12,7 @@ export default function AdminLoginPage() {
           ← Voltar para Home
         </Link>
       </div>
-      <LoginForm redirectTo="/admin/dashboard" />
+      <LoginForm redirectTo="/admin/dashboard" disableAutoRedirect={true} />
     </div>
   );
 }
