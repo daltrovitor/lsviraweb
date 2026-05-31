@@ -1,17 +1,57 @@
-# LeadScrap Robots.txt
-# Allow all crawlers to access the site
+# LeadScrap - Robots.txt para SEO Otimizado
+# Permite Google, Bing e outros buscadores indexarem páginas públicas
 
 User-agent: *
 Allow: /
+Allow: /landing
+Allow: /dashboard
+Allow: /public/
 
-# Disallow admin and private areas
-Disallow: /admin/
-Disallow: /dashboard/
+# Não permitir acesso a APIs, areas administrativas e arquivos sensíveis
 Disallow: /api/
+Disallow: /admin/dashboard
+Disallow: /admin/login
 Disallow: /automacao/
 Disallow: /extracao/
 Disallow: /extracao-maps/
 Disallow: /complete-dashboard/
+Disallow: /auth_info_baileys/
+Disallow: /uploads/
+Disallow: /sessions/
+Disallow: /background-server/
+Disallow: /*.json$
+Disallow: /*.sql$
 
-# Sitemap
-Sitemap: https://viraweb.online/sitemap.xml
+# Permitir Googlebot com mais agressividade
+User-agent: Googlebot
+Allow: /
+Allow: /landing
+Allow: /dashboard
+Allow: /public/
+Disallow: /api/
+Disallow: /admin/
+Crawl-delay: 0.5
+
+# Permitir Bingbot
+User-agent: Bingbot
+Allow: /
+Allow: /landing
+Allow: /dashboard
+Disallow: /api/
+Disallow: /admin/
+Crawl-delay: 1
+
+# Bloquear bots maliciosos
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: AhrefsBot
+Disallow: /
+
+# Sitemaps para melhor indexação
+Sitemap: https://leadscrap.com/sitemap.xml
+Sitemap: https://leadscrap.com/sitemap-landing.xml
+
+# Cache control
+Request-rate: 1 second
+Crawl-delay: 1

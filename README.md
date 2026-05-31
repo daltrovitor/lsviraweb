@@ -1,77 +1,80 @@
-# LeadScrap - Sistema de Disparo em Massa WhatsApp
+# LeadScrap - Plataforma Enterprise de Disparo WhatsApp em Massa
 
-## 📱 Visão Geral
+> **Solução completa de automação de marketing** para disparar mensagens em massa no WhatsApp com aprovação de usuários, dashboard administrativo avançado e métricas em tempo real.
 
-LeadScrap é uma plataforma completa para disparar mensagens em massa no WhatsApp com sistema de aprovação de usuários, dashboard administrativo e métricas em tempo real.
+## 📱 O que é LeadScrap?
 
-### Fluxo Principal
+LeadScrap é uma plataforma SaaS profissional de código aberto que permite:
 
+- ✅ **Disparo em Massa**: Envie campanhas para milhares de contatos simultaneamente
+- ✅ **Captura de Leads**: Landing page integrada para capturar novos contatos
+- ✅ **Dashboard Inteligente**: Visualize métricas, relatórios e performance em tempo real
+- ✅ **Controle Administrativo**: Sistema RBAC com aprovação de usuários
+- ✅ **Automação**: Integração com WhatsApp Business (Baileys)
+- ✅ **Segurança**: Autenticação com Supabase, encriptação de dados
+
+### 🎯 Arquitetura e Fluxo Principal
+
+```mermaid
+graph TD
+    A[Login /] -->|Usuário| B[Dashboard /dashboard]
+    B -->|Admin| C[Admin Dashboard /admin/dashboard]
+    C -->|Gerencia| D[Leads Database]
+    E[Landing Page /landing] -->|Novo Lead| D
+    D -->|Disparo| F[WhatsApp API]
+    F -->|Mensagens| G[Contatos]
+    C -->|Monitora| H[Métricas em Tempo Real]
 ```
-Login Principal (/) - Dashboard Login
-    ↓
-Dashboard Principal (/dashboard)
-    ↓
-Admin Dashboard (/admin/dashboard) - Gestão de Leads
-    ↓
-Landing Page (/landing) - Captura de Leads
-```
 
-## 🏗️ Estrutura do Projeto
+## 🏗️ Arquitetura Técnica
+
+### Stack Tecnológico
+
+**Frontend:**
+- Next.js 14 (App Router)
+- React 18
+- Tailwind CSS
+- Framer Motion (Animações)
+- Socket.IO (Real-time)
+
+**Backend:**
+- Express.js (REST API)
+- Node.js/TypeScript
+- Supabase (PostgreSQL + Auth)
+- Baileys (WhatsApp)
+
+**Infraestrutura:**
+- Railway (Background Server)
+- Puppeteer (Web Scraping)
+- PostgreSQL (Dados)
+
+### Estrutura de Pastas
 
 ```
 disparador/
-├── src/
-│   ├── app/
-│   │   ├── page.tsx              # Login principal (Dashboard)
-│   │   ├── layout.tsx             # Layout global com Toaster
-│   │   ├── landing/page.tsx        # Landing page de captura de leads
-│   │   └── admin/
-│   │       ├── login/page.tsx      # Admin login (subdomain)
-│   │       ├── dashboard/
-│   │       │   ├── layout.tsx      # RBAC middleware
-│   │       │   └── page.tsx        # Admin dashboard de leads
-│   │       └── api/
-│   │           └── landing/
-│   │               └── submit-lead/ # API para cadastro de leads
-│   ├── components/
-│   ├── services/
-│   │   └── socket.ts              # Socket.io client
-│   ├── types/
-│   │   └── index.ts               # TypeScript interfaces
-│   └── utils/
-│       ├── supabase.ts            # Supabase config
-│       └── numberSanitizer.ts     # Sanitização de números
-├── server/
-│   ├── index.ts                   # Entry point Express
-│   ├── routes/
-│   │   ├── auth.ts                # Autenticação (registro/login)
-│   │   └── admin.ts               # Rotas de admin
-│   ├── services/
-│   │   ├── whatsapp.ts            # WhatsApp Baileys
-│   │   ├── campaign.ts            # Campanhas
-│   │   └── maps-scraper.ts        # Google Maps scraper
-│   ├── utils/
-│   │   ├── supabase.ts            # Supabase admin
-│   │   ├── csv.ts                 # Parser CSV
-│   │   └── numberSanitizer.ts     # Sanitização
-│   └── types/
-│       └── index.ts               # Interfaces backend
-├── background-server/             # Servidor de background 24/7
-│   ├── src/
-│   │   └── index.ts               # Servidor principal de scraping
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── railway.json               # Config Railway
-│   └── render.yaml                # Config Render
-├── scripts/
-│   └── admin_schema.sql           # Schema do banco
-├── public/
-├── package.json
-├── tsconfig.json
-├── next.config.js
-├── tailwind.config.ts
-├── DEPLOYMENT.md                  # Guia de deploy
-└── BACKGROUND_SERVER.md           # Guia do servidor de background
+├── 📁 src/
+│   ├── app/                        # Next.js App Router
+│   │   ├── page.tsx               # Dashboard login (/)
+│   │   ├── layout.tsx             # Layout global
+│   │   ├── landing/page.tsx       # Captura de leads (/landing)
+│   │   └── admin/                 # Área administrativa
+│   │       ├── login/page.tsx     # Admin login
+│   │       └── dashboard/page.tsx # Dashboard de leads
+│   ├── components/                # Componentes React reutilizáveis
+│   ├── services/                  # Serviços (Socket.io, APIs)
+│   ├── types/                     # Tipos TypeScript
+│   └── utils/                     # Utilitários
+├── 📁 server/                     # Backend Node.js
+│   ├── index.ts                   # Entry point
+│   ├── routes/                    # Rotas (auth, admin)
+│   ├── services/                  # Serviços (WhatsApp, Campanhas)
+│   └── utils/                     # Utilitários
+├── 📁 background-server/          # Servidor background 24/7
+│   ├── src/index.ts              # Processamento de campanhas
+│   ├── railway.json              # Config Railway
+│   └── render.yaml               # Config Render
+├── 📁 public/                    # Arquivos estáticos
+└── 📁 scripts/                   # Scripts SQL e utilitários
 ```
 
 ## 🚀 Início Rápido
@@ -294,7 +297,266 @@ npm run dev
 
 Ver [DEPLOYMENT.md](./DEPLOYMENT.md) para instruções completas de deploy na Vercel.
 
-### Quick Deploy
+### Quick Deploy - Vercel
+
+```bash
+# 1. Push para repositório GitHub
+git push origin main
+
+# 2. Conectar em https://vercel.com
+# 3. Importar projeto
+# 4. Adicionar variáveis de ambiente
+
+# Variáveis necessárias:
+NEXT_PUBLIC_SUPABASE_URL=seu_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_chave_anon
+SUPABASE_SERVICE_KEY=sua_chave_service
+
+# 5. Deploy
+vercel deploy --prod
+```
+
+## 🌐 Variáveis de Ambiente
+
+### `.env.local` (Frontend & Backend)
+
+```env
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJxxx...
+SUPABASE_SERVICE_KEY=eyJxxx...
+
+# WhatsApp
+WHATSAPP_SESSION_NAME=disparador_session
+WHATSAPP_QR_PATH=./auth_info_baileys
+
+# API
+API_PORT=3001
+SOCKET_PORT=3002
+NODE_ENV=development
+
+# Emails (Opcional para notificações)
+SMTP_HOST=smtp.gmail.com
+SMTP_USER=seu_email@gmail.com
+SMTP_PASS=sua_senha_app
+```
+
+### `.env.local` (Background Server)
+
+```env
+SUPABASE_URL=https://xxxxx.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJxxx...
+SCRAPER_WORKERS=4
+PUPPETEER_TIMEOUT=30000
+```
+
+## 📚 Documentação Completa
+
+- [DEPLOYMENT.md](./DEPLOYMENT.md) - Guia completo de deployment
+- [BACKGROUND_SERVER.md](./BACKGROUND_SERVER.md) - Setup servidor background
+- [TESTING.md](./TESTING.md) - Guia de testes
+- [RENDER_ENV_VARS.md](./RENDER_ENV_VARS.md) - Deploy no Render
+
+## 🛠️ Desenvolvimento
+
+### Scripts Disponíveis
+
+```bash
+# Desenvolvimento
+npm run dev              # Inicia frontend + backend
+npm run dev:next        # Apenas frontend
+npm run dev:backend     # Apenas backend
+
+# Build
+npm run build           # Build Next.js + TypeScript backend
+npm run build:next      # Apenas Next.js
+
+# Produção
+npm start               # Inicia servidor em produção
+
+# Linting
+npm run lint            # ESLint
+```
+
+### Estrutura de Componentes
+
+```
+src/components/
+├── auth/
+│   ├── LoginForm.tsx
+│   └── RegisterForm.tsx
+├── dashboard/
+│   ├── LeadsTable.tsx
+│   ├── CampaignCard.tsx
+│   └── MetricsCard.tsx
+├── admin/
+│   ├── UserApprovalPanel.tsx
+│   ├── StatisticsPanel.tsx
+│   └── CampaignMonitor.tsx
+├── common/
+│   ├── Header.tsx
+│   ├── Sidebar.tsx
+│   └── Toast.tsx
+└── ui/
+    ├── Button.tsx
+    ├── Modal.tsx
+    └── Input.tsx
+```
+
+### Serviços
+
+```
+src/services/
+├── auth.ts          # Supabase Auth
+├── socket.ts        # Socket.IO client
+├── campaigns.ts     # API de campanhas
+└── leads.ts         # API de leads
+```
+
+## 🗂️ API Endpoints
+
+### Autenticação
+
+```
+POST   /api/auth/register      # Registrar novo usuário
+POST   /api/auth/login         # Login
+POST   /api/auth/logout        # Logout
+GET    /api/auth/me            # Usuário logado
+POST   /api/auth/refresh       # Renovar token
+```
+
+### Leads
+
+```
+GET    /api/leads              # Listar todos os leads
+GET    /api/leads/:id          # Detalhes do lead
+POST   /api/landing/submit-lead # Novo lead (landing page)
+PUT    /api/leads/:id/status   # Atualizar status
+DELETE /api/leads/:id          # Deletar lead
+```
+
+### Campanhas
+
+```
+GET    /api/campaigns          # Listar campanhas
+POST   /api/campaigns          # Criar campanha
+GET    /api/campaigns/:id      # Detalhes da campanha
+PUT    /api/campaigns/:id      # Atualizar campanha
+DELETE /api/campaigns/:id      # Deletar campanha
+POST   /api/campaigns/:id/send # Iniciar disparo
+POST   /api/campaigns/:id/pause# Pausar campanha
+POST   /api/upload-csv         # Upload de lista
+```
+
+### Gerenciamento de Usuários (Admin)
+
+```
+GET    /api/admin/users        # Listar usuários
+PUT    /api/admin/users/:id/approve # Aprovar usuário
+PUT    /api/admin/users/:id/reject  # Rejeitar usuário
+DELETE /api/admin/users/:id    # Deletar usuário
+GET    /api/admin/stats        # Estatísticas gerais
+```
+
+## 🔗 WebSocket Events (Socket.IO)
+
+```javascript
+// Cliente para Servidor
+socket.emit('campaign:start', { campaignId })
+socket.emit('campaign:pause', { campaignId })
+socket.emit('whatsapp:reconnect')
+
+// Servidor para Cliente
+socket.on('campaign:progress', { sent, total, percentage })
+socket.on('campaign:completed', { campaignId, stats })
+socket.on('whatsapp:qr-code', { qrCodeUrl })
+socket.on('notification', { type, message })
+```
+
+## 🎯 Roadmap
+
+### Phase 1 - ✅ MVP
+- [x] Login e autenticação
+- [x] Captura de leads
+- [x] Admin dashboard
+- [x] Disparo via WhatsApp
+- [x] Sistema de aprovação
+
+### Phase 2 - 🚧 Em Desenvolvimento
+- [ ] Segmentação de leads
+- [ ] Templates de mensagens
+- [ ] Agendamento de campanhas
+- [ ] Relatórios avançados
+- [ ] API pública
+
+### Phase 3 - 📋 Planejado
+- [ ] Integração com CRM
+- [ ] Webhooks
+- [ ] Custom branding
+- [ ] Multi-tenancy
+- [ ] SSO (Google, Microsoft)
+
+## 💡 Recursos Adicionais
+
+### Tutoriais
+- [Como fazer setup inicial](./docs/setup.md)
+- [Guia de WhatsApp](./docs/whatsapp-setup.md)
+- [Troubleshooting comum](./docs/troubleshooting.md)
+
+### Links Úteis
+- [Supabase Docs](https://supabase.com/docs)
+- [Baileys Documentation](https://github.com/WhiskeySockets/Baileys)
+- [Next.js Documentation](https://nextjs.org/docs)
+
+## 📞 Suporte
+
+### Problemas Comuns
+
+**❌ "Google não consegue ler nada"**
+- ✅ Adicione `robots.txt` para permitir indexação
+- ✅ Melhore metadados em `layout.tsx`
+- ✅ Adicione Schema.org JSON-LD
+- ✅ Teste com Google Search Console
+
+**❌ WhatsApp não conecta**
+- ✅ Verifique `/auth_info_baileys/` permissions
+- ✅ Escanear QR code novamente
+- ✅ Fazer login em novo celular
+
+**❌ Supabase não conecta**
+- ✅ Verifique `.env.local`
+- ✅ Teste com `npm run dev`
+- ✅ Check Supabase dashboard
+
+## 📄 Licença
+
+MIT - Veja [LICENSE](./LICENSE) para detalhes
+
+## 🤝 Contribuindo
+
+Contribuições são bem-vindas! Por favor:
+
+1. Fork o projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+## 📞 Contato
+
+- 📧 Email: contato@leadscrap.com
+- 🐙 GitHub: [@seu-usuario](https://github.com)
+- 💼 LinkedIn: [seu-perfil](https://linkedin.com)
+
+---
+
+<div align="center">
+
+**⭐ Se esse projeto ajudou, considere dar uma star!**
+
+Desenvolvido com ❤️ por [Seu Nome]
+
+</div>
 
 ```bash
 # 1. Logar no Vercel

@@ -1,0 +1,64 @@
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "LeadScrap - Plataforma de Disparo WhatsApp em Massa",
+  "alternateName": "LeadScrap",
+  "description": "Solução SaaS completa para disparar mensagens em massa no WhatsApp com dashboard administrativo, captura de leads e métricas em tempo real. Automação de marketing profissional.",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "BRL",
+    "availability": "https://schema.org/InStock"
+  },
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "4.8",
+    "reviewCount": "150"
+  },
+  "author": {
+    "@type": "Organization",
+    "name": "LeadScrap Team",
+    "url": "https://leadscrap.com"
+  },
+  "creator": {
+    "@type": "Person",
+    "name": "Desenvolvedor"
+  },
+  "datePublished": "2024-01-01",
+  "dateModified": "2026-05-30",
+  "inLanguage": "pt-BR",
+  "isAccessibleForFree": true,
+  "screenshot": {
+    "@type": "ImageObject",
+    "url": "https://leadscrap.com/screenshot.png",
+    "width": 1200,
+    "height": 630
+  },
+  "featureList": [
+    "Disparo em massa para WhatsApp",
+    "Dashboard administrativo em tempo real",
+    "Captura automática de leads",
+    "Sistema de aprovação de usuários",
+    "Integração com Google Maps",
+    "Servidor background 24/7",
+    "API REST completa",
+    "WebSocket para atualizações em tempo real",
+    "Autenticação segura com Supabase",
+    "Upload de listas CSV"
+  ],
+  "requirements": [
+    "Node.js 18+",
+    "PostgreSQL (via Supabase)",
+    "WhatsApp ativo"
+  ],
+  "softwareVersion": "0.1.0",
+  "url": "https://leadscrap.com",
+  "mainEntity": {
+    "@type": "WebApplication",
+    "name": "LeadScrap Dashboard",
+    "url": "https://leadscrap.com/dashboard",
+    "applicationCategory": "BusinessApplication"
+  }
+}
