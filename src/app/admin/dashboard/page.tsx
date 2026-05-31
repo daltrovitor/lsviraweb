@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, XCircle, Users, LogOut, Loader2, AlertCircle, Phone, Mail, Calendar, Clock, MessageCircle, Shield, UserPlus, Ban, Key } from 'lucide-react';
 import { toast } from 'sonner';
@@ -31,12 +32,54 @@ type UserProfile = {
 };
 
 export default function AdminDashboard() {
+  const router = useRouter();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [members, setMembers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [authChecking, setAuthChecking] = useState(true);
   const [activeTab, setActiveTab] = useState<'members' | 'pending'>('members');
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [passwordInput, setPasswordInput] = useState<{ [key: string]: string }>({});
+
+  // Check authentication and admin role on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (!supabase) {
+        router.replace('/admin/login');
+        return;
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.error('[AdminDashboard] No session found');
+        router.replace('/admin/login');
+        return;
+      }
+
+      console.log('[AdminDashboard] Session found for user:', session.user.id);
+
+      // Check user role
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+
+      console.log('[AdminDashboard] Profile check - Profile:', profile, 'Error:', error);
+
+      if (error || !profile || profile.role !== 'admin') {
+        console.error('[AdminDashboard] User is not admin or profile not found');
+        router.replace('/admin/login');
+        return;
+      }
+
+      console.log('[AdminDashboard] User is admin, allowing access');
+      setAuthChecking(false);
+    };
+
+    checkAuth();
+  }, [router]);
 
   const fetchLeads = async () => {
     if (!supabase) return;
@@ -110,13 +153,15 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      await Promise.all([fetchLeads(), fetchMembers()]);
-      setLoading(false);
-    };
-    fetchData();
-  }, []);
+    if (!authChecking) {
+      const fetchData = async () => {
+        setLoading(true);
+        await Promise.all([fetchLeads(), fetchMembers()]);
+        setLoading(false);
+      };
+      fetchData();
+    }
+  }, [authChecking]);
 
   const handleApproveLead = async (leadId: string) => {
     if (!supabase) return;
@@ -236,7 +281,7 @@ export default function AdminDashboard() {
     totalLeads: members.reduce((sum, m) => sum + m.leads_extracted, 0),
   };
 
-  if (loading) {
+  if (authChecking || loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
