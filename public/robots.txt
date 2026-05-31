@@ -1,0 +1,17 @@
+# LeadScrap Robots.txt
+# Allow all crawlers to access the site
+
+User-agent: *
+Allow: /
+
+# Disallow admin and private areas
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /api/
+Disallow: /automacao/
+Disallow: /extracao/
+Disallow: /extracao-maps/
+Disallow: /complete-dashboard/
+
+# Sitemap
+Sitemap: https://viraweb.online/sitemap.xml

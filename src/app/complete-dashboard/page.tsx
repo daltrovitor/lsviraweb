@@ -45,7 +45,7 @@ export default function CompleteDashboard() {
           <div className="p-6 border-b border-blue-900">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden bg-slate-50 border border-slate-100">
-                <img src="/logo.png" alt="LeadScrap" className="object-contain w-full h-full" />
+                <img src="/logo.png" alt="LeadScrap - Plataforma de Automação WhatsApp e Extração de Leads" className="object-contain w-full h-full" />
               </div>
               <div>
                 <h1 className="text-lg font-black text-white">LeadScrap</h1>

@@ -154,7 +154,7 @@ export default function LandingPage() {
       <nav className="relative z-50 border-b border-navy-100/50 bg-white/70 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo1.png" alt="LS Logo" className="h-12 w-auto object-contain" />
+            <img src="/logo1.png" alt="LeadScrap - Plataforma de Automação WhatsApp e Extração de Leads" className="h-12 w-auto object-contain" />
             <span className="text-xl font-black tracking-tight text-navy-950">
               LS
             </span>

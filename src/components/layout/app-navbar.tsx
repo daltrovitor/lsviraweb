@@ -61,7 +61,7 @@ export function AppNavbar({ user, onSignOut }: { user: User; onSignOut: () => vo
             <div className="flex items-center gap-3 shrink-0">
               <Link href="/dashboard" className="flex items-center gap-2.5 group">
                 <div className="w-9 h-9 rounded-xl bg-white border border-slate-200/80 flex items-center justify-center shadow-sm overflow-hidden p-1 group-hover:border-v-blue-400/40 transition-colors">
-                  <img src="/logo.png" alt="LeadScrap" className="w-full h-full object-contain" />
+                  <img src="/logo.png" alt="LeadScrap - Plataforma de Automação WhatsApp e Extração de Leads" className="w-full h-full object-contain" />
                 </div>
                 <div className="hidden sm:block">
                   <span className="text-base font-black text-navy-950 tracking-tight">LeadScrap</span>

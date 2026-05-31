@@ -113,7 +113,7 @@ export function LoginForm({ redirectTo = '/dashboard', disableAutoRedirect = fal
       <div className="flex-1 flex items-center justify-center p-6 sm:p-10">
         <Card className="w-full max-w-md glow-border" variant="glass">
           <div className="mb-8">
-            <img src="/logo.png" alt="Logo" className="w-12 h-12 mb-4" />
+            <img src="/logo.png" alt="LeadScrap - Plataforma de Automação WhatsApp e Extração de Leads" className="w-12 h-12 mb-4" />
             <h1 className="text-2xl font-black text-gradient-tech flex items-center gap-2">
               LeadScrap
               <Badge variant="gold">ViraWeb</Badge>

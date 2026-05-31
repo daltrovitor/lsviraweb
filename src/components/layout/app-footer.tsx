@@ -7,7 +7,7 @@ export function AppFooter() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center p-1.5 shadow-sm">
-              <img src="/logo.png" alt="LeadScrap" className="w-full h-full object-contain" />
+              <img src="/logo.png" alt="LeadScrap - Plataforma de Automação WhatsApp e Extração de Leads" className="w-full h-full object-contain" />
             </div>
             <div>
               <p className="text-sm font-black text-navy-950 tracking-tight">LeadScrap</p>

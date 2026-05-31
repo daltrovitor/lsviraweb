@@ -80,7 +80,7 @@ export default function Navbar({ activeTab, setActiveTab, onLogout }: NavbarProp
             {/* Logo & Brand */}
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shadow-sm overflow-hidden p-1.5">
-                <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
+                <img src="/logo.png" alt="LeadScrap - Plataforma de Automação WhatsApp e Extração de Leads" className="w-full h-full object-contain" />
               </div>
               <div className="hidden md:block">
                 <h1 className="text-lg font-black text-navy-950 flex items-center gap-1.5 leading-none">

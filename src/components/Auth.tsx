@@ -148,7 +148,7 @@ export default function Auth({ onSession }: AuthProps) {
           {/* Logo & Header */}
           <div className="flex flex-col mb-2">
             <div className="w-14 h-14 relative mb-4">
-              <img src="/logo.png" alt="Logo" className="w-full h-full object-contain drop-shadow-sm" />
+              <img src="/logo.png" alt="LeadScrap - Plataforma de Automação WhatsApp e Extração de Leads" className="w-full h-full object-contain drop-shadow-sm" />
             </div>
             <h1 className="text-3xl font-black text-navy-950 tracking-tight flex items-center gap-2">
               LeadScrap
