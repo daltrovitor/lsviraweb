@@ -93,8 +93,8 @@ export default function AdminDashboard() {
       if (error) throw error;
       setLeads(data || []);
     } catch (error) {
-      console.error('Erro ao buscar leads:', error);
-      toast.error('Erro ao carregar leads');
+      console.warn('Landing leads table not accessible or empty:', error);
+      setLeads([]); // Set empty array if table doesn't exist
     }
   };
 
@@ -115,26 +115,37 @@ export default function AdminDashboard() {
         (profiles || []).map(async (profile: any) => {
           if (!supabase) return null;
 
-          // Count campaigns sent
-          const { data: campaigns } = await supabase
-            .from('campaigns')
-            .select('sent_count')
-            .eq('user_id', profile.id);
+          let totalSent = 0;
+          let totalLeads = 0;
 
-          const totalSent = campaigns?.reduce((sum: number, c: any) => sum + (c.sent_count || 0), 0) || 0;
+          // Count campaigns sent (handle if table doesn't exist)
+          try {
+            const { data: campaigns } = await supabase
+              .from('campaigns')
+              .select('sent_count')
+              .eq('user_id', profile.id);
 
-          // Count leads extracted from map_searches
-          const { data: searches } = await supabase
-            .from('map_searches')
-            .select('total_results')
-            .eq('user_id', profile.id);
+            totalSent = campaigns?.reduce((sum: number, c: any) => sum + (c.sent_count || 0), 0) || 0;
+          } catch (e) {
+            console.warn('Campaigns table not accessible:', e);
+          }
 
-          const totalLeads = searches?.reduce((sum: number, s: any) => sum + (s.total_results || 0), 0) || 0;
+          // Count leads extracted from map_searches (handle if table doesn't exist)
+          try {
+            const { data: searches } = await supabase
+              .from('map_searches')
+              .select('total_results')
+              .eq('user_id', profile.id);
+
+            totalLeads = searches?.reduce((sum: number, s: any) => sum + (s.total_results || 0), 0) || 0;
+          } catch (e) {
+            console.warn('Map searches table not accessible:', e);
+          }
 
           return {
             id: profile.id,
-            full_name: profile.full_name || 'Sem nome',
-            email: '', // Will need to join with auth.users
+            full_name: profile.full_name || profile.email || 'Sem nome',
+            email: profile.email || '',
             role: profile.role,
             status: profile.status,
             last_access: profile.last_access,
