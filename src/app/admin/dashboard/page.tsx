@@ -576,10 +576,41 @@ export default function AdminDashboard() {
                       </td>
                     </tr>
                   ))}
+                  {members.filter(m => m.status === 'pending').map((member) => (
+                    <tr key={member.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors bg-amber-50">
+                      <td className="py-3 px-4 font-bold text-slate-900 text-xs">{member.full_name}</td>
+                      <td className="py-3 px-4 text-slate-600 text-xs">{member.email}</td>
+                      <td className="py-3 px-4 text-slate-600 text-xs">-</td>
+                      <td className="py-3 px-4 text-slate-600 text-xs">Já cadastrado</td>
+                      <td className="py-3 px-4 text-slate-600 text-xs">
+                        {new Date(member.created_at).toLocaleDateString('pt-BR')}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleUpdateMemberStatus(member.id, 'active')}
+                            disabled={processingId === member.id}
+                            className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50"
+                          >
+                            <CheckCircle2 size={12} />
+                            Aprovar
+                          </button>
+                          <button
+                            onClick={() => handleUpdateMemberStatus(member.id, 'suspended')}
+                            disabled={processingId === member.id}
+                            className="inline-flex items-center gap-1 px-2 py-1 bg-red-500 hover:bg-red-600 text-white text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50"
+                          >
+                            <XCircle size={12} />
+                            Rejeitar
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
               
-              {leads.filter(l => l.status === 'pending').length === 0 && (
+              {leads.filter(l => l.status === 'pending').length === 0 && members.filter(m => m.status === 'pending').length === 0 && (
                 <div className="p-12 text-center">
                   <UserPlus size={48} className="text-slate-300 mx-auto mb-4" />
                   <p className="text-slate-500 font-medium">Nenhuma solicitação pendente</p>
