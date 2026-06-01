@@ -163,10 +163,21 @@ export class MapsScraperService extends EventEmitter {
         }
 
         try {
-          await page.goto(link, { waitUntil: 'domcontentloaded', timeout: 30000 });
-          await page.waitForSelector('h1', { timeout: 6000 }).catch(() => {});
+          const itemPage = await this.browser.newPage();
+          await itemPage.setViewport({ width: 1920, height: 2000 });
+          await itemPage.setExtraHTTPHeaders({ 'Accept-Language': 'pt-BR,pt;q=0.9' });
 
-          const placeData = await page.evaluate(() => {
+          try {
+            await itemPage.goto(link, { waitUntil: 'domcontentloaded', timeout: 45000 });
+          } catch (navErr: any) {
+            this.emit('log', this.userId, `Erro de navegação para ${link}: ${navErr.message}`);
+            await itemPage.close().catch(() => {});
+            continue;
+          }
+
+          await itemPage.waitForSelector('h1', { timeout: 6000 }).catch(() => {});
+
+          const placeData = await itemPage.evaluate(() => {
             const title = document.querySelector('h1')?.textContent?.trim() || '';
             const address = document.querySelector('button[data-item-id="address"]')?.textContent?.trim() || '';
             const phone = document.querySelector('button[data-item-id^="phone:tel:"]')?.textContent?.trim() || 
@@ -180,6 +191,8 @@ export class MapsScraperService extends EventEmitter {
             
             return { title, address, phone, website, rating, category };
           });
+
+          await itemPage.close().catch(() => {});
 
           if (!placeData.title) continue;
 
