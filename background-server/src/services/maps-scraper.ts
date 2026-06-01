@@ -46,6 +46,7 @@ export class MapsScraperService extends EventEmitter {
     
     try {
       this.emit('log', this.userId, 'Iniciando navegador invisível...');
+      this.emit('log', this.userId, `Debug: launchOptions=${JSON.stringify({ headless: launchOptions.headless, args: launchOptions.args?.slice(0,5) })}`);
       
       // Configuração para Render (usa Chrome do sistema)
       const launchOptions: any = {
@@ -99,7 +100,13 @@ export class MapsScraperService extends EventEmitter {
         }
       }
 
-      this.browser = await puppeteer.launch(launchOptions);
+      try {
+        this.browser = await puppeteer.launch(launchOptions);
+        this.emit('log', this.userId, 'Navegador iniciado com sucesso.');
+      } catch (launchErr: any) {
+        this.emit('log', this.userId, `Erro ao iniciar navegador: ${launchErr.message}`);
+        throw launchErr;
+      }
 
       const page = await this.browser.newPage();
       await page.setViewport({ width: 1920, height: 2000 });
@@ -107,7 +114,14 @@ export class MapsScraperService extends EventEmitter {
 
       const searchUrl = `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
       this.emit('log', this.userId, `Buscando por: "${query}"...`);
-      await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 60000 });
+      this.emit('log', this.userId, `Debug: visitando busca: ${searchUrl}`);
+      try {
+        await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 60000 });
+        this.emit('log', this.userId, 'Página de busca carregada.');
+      } catch (gotoErr: any) {
+        this.emit('log', this.userId, `Erro ao acessar busca: ${gotoErr.message}`);
+        throw gotoErr;
+      }
 
       try {
         await page.waitForSelector('div[role="feed"]', { timeout: 15000 });
@@ -144,9 +158,13 @@ export class MapsScraperService extends EventEmitter {
           await new Promise(resolve => setTimeout(resolve, 600));
         }
         return Array.from(linksSet);
-      }, linksToCollect);
+      }, linksToCollect).catch((evalErr: any) => {
+        this.emit('log', this.userId, `Erro no evaluate (links): ${evalErr.message}`);
+        return [];
+      });
 
       this.emit('log', this.userId, `Encontrados ${links.length} locais em potencial no Maps. Iniciando extração filtrada...`);
+      this.emit('log', this.userId, `Debug: primeirasLinks=${JSON.stringify(links.slice(0,5))}`);
       this.emit('status', this.userId, 'extracting');
 
       let validCount = 0;
@@ -163,6 +181,7 @@ export class MapsScraperService extends EventEmitter {
         }
 
         try {
+          this.emit('log', this.userId, `Abrindo página item: ${link}`);
           const itemPage = await this.browser.newPage();
           await itemPage.setViewport({ width: 1920, height: 2000 });
           await itemPage.setExtraHTTPHeaders({ 'Accept-Language': 'pt-BR,pt;q=0.9' });
@@ -193,6 +212,7 @@ export class MapsScraperService extends EventEmitter {
           });
 
           await itemPage.close().catch(() => {});
+          this.emit('log', this.userId, `Página item fechada: ${link}`);
 
           if (!placeData.title) continue;
 
