@@ -241,8 +241,9 @@ export class MapsScraperService extends EventEmitter {
       }
       
     } catch (error: any) {
-      console.log(`[MapsScraper] Erro crítico na extração: ${error.message}`);
-      this.emit('log', this.userId, 'Ocorreu um erro durante a extração. Tente novamente.');
+      console.log(`[MapsScraper] Erro crítico na extração:`, error);
+      const errMsg = error && error.message ? error.message : 'Erro desconhecido durante a extração';
+      this.emit('log', this.userId, `Ocorreu um erro durante a extração: ${errMsg}`);
       this.emit('status', this.userId, 'error');
     } finally {
       if (this.browser) {
