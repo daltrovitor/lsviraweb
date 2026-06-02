@@ -159,6 +159,7 @@ export class MapsScraperService extends EventEmitter {
         }
         return Array.from(linksSet);
       }, linksToCollect).catch((evalErr: any) => {
+        console.error('[MapsScraper] Erro no page.evaluate (links):', evalErr);
         this.emit('log', this.userId, `Erro no evaluate (links): ${evalErr.message}`);
         return [];
       });
@@ -257,6 +258,7 @@ export class MapsScraperService extends EventEmitter {
           this.emit('log', this.userId, `Extraído (${validCount}/${maxItems}): ${result.title} (${result.phone})`);
 
         } catch (itemErr: any) {
+          console.error('[MapsScraper] Erro ao extrair link:', itemErr);
           this.emit('log', this.userId, `Erro ao extrair link: ${itemErr.message}`);
         }
         
@@ -273,6 +275,7 @@ export class MapsScraperService extends EventEmitter {
       }
       
     } catch (error: any) {
+      console.error('[MapsScraper] Erro crítico na extração:', error);
       this.emit('log', this.userId, `Erro crítico na extração: ${error.message}`);
       this.emit('status', this.userId, 'error');
     } finally {
