@@ -46,7 +46,6 @@ export class MapsScraperService extends EventEmitter {
     
     try {
       this.emit('log', this.userId, 'Iniciando navegador invisível...');
-      this.emit('log', this.userId, `Debug: launchOptions=${JSON.stringify({ headless: launchOptions.headless, args: launchOptions.args?.slice(0,5) })}`);
       
       // Configuração para Render (usa Chrome do sistema)
       const launchOptions: any = {
@@ -61,6 +60,9 @@ export class MapsScraperService extends EventEmitter {
           '--disable-features=IsolateOrigins,site-per-process'
         ]
       };
+
+        // Log adicional para diagnóstico (depois de declarar launchOptions)
+        this.emit('log', this.userId, `Debug: launchOptions=${JSON.stringify({ headless: launchOptions.headless, args: launchOptions.args?.slice(0,5) })}`);
 
       // No Render, tentar múltiplos caminhos do Chrome
       if (process.env.RENDER || process.env.RENDER_EXTERNAL_HOSTNAME) {
