@@ -93,8 +93,9 @@ export class MapsScraperService extends EventEmitter {
         if (!foundChrome) {
           try {
             const chromium = require('@sparticuz/chromium');
-            launchOptions.executablePath = chromium.executablePath();
-            this.emit('log', this.userId, `Usando Chrome via @sparticuz/chromium: ${chromium.executablePath()}`);
+            const path = await chromium.executablePath();
+            launchOptions.executablePath = path;
+            this.emit('log', this.userId, `Usando Chrome via @sparticuz/chromium: ${path}`);
           } catch (e) {
             this.emit('log', this.userId, `@sparticuz/chromium não disponível: ${e}`);
             // Fallback para Puppeteer padrão
@@ -111,6 +112,7 @@ export class MapsScraperService extends EventEmitter {
       }
 
       const page = await this.browser.newPage();
+      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
       await page.setViewport({ width: 1920, height: 2000 });
       await page.setExtraHTTPHeaders({ 'Accept-Language': 'pt-BR,pt;q=0.9' });
 
@@ -118,8 +120,25 @@ export class MapsScraperService extends EventEmitter {
       this.emit('log', this.userId, `Buscando por: "${query}"...`);
       this.emit('log', this.userId, `Debug: visitando busca: ${searchUrl}`);
       try {
-        await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 60000 });
+        await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
         this.emit('log', this.userId, 'Página de busca carregada.');
+
+        // Lidar com a tela de consentimento de cookies se ela aparecer
+        try {
+          const consentSelector = 'form[action*="consent.google.com"] button, button[aria-label="Aceitar tudo"], button[aria-label="Accept all"], button[aria-label="Aceitar todos"]';
+          const consentButton = await page.$(consentSelector);
+          if (consentButton) {
+            this.emit('log', this.userId, 'Removendo tela de consentimento de cookies do Google...');
+            await Promise.all([
+              page.click(consentSelector),
+              page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 3000 }).catch(() => {})
+            ]);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            this.emit('log', this.userId, 'Consentimento aceito com sucesso.');
+          }
+        } catch (consentErr) {
+          // Ignorar se não encontrar ou se o seletor falhar
+        }
       } catch (gotoErr: any) {
         this.emit('log', this.userId, `Erro ao acessar busca: ${gotoErr.message}`);
         throw gotoErr;

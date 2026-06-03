@@ -113,6 +113,7 @@ export class MapsScraperService extends EventEmitter {
       }
 
       const page = await this.browser.newPage();
+      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
       await page.setViewport({ width: 1920, height: 2000 });
       await page.setExtraHTTPHeaders({ 'Accept-Language': 'pt-BR,pt;q=0.9' });
 
@@ -131,8 +132,9 @@ export class MapsScraperService extends EventEmitter {
             this.emit('log', this.userId, 'Removendo tela de consentimento de cookies do Google...');
             await Promise.all([
               page.click(consentSelector),
-              page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 })
+              page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 3000 }).catch(() => {})
             ]);
+            await new Promise(resolve => setTimeout(resolve, 1000));
             this.emit('log', this.userId, 'Consentimento aceito com sucesso.');
           }
         } catch (consentErr) {

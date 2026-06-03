@@ -29,7 +29,7 @@ export default function LandingPage() {
     whatsapp: '',
     password: ''
   });
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,7 +40,7 @@ export default function LandingPage() {
       return;
     }
 
-    setLoading(true);
+    setIsSubmitting(true);
     try {
       const response = await fetch('/api/landing/submit-lead', {
         method: 'POST',
@@ -61,7 +61,7 @@ export default function LandingPage() {
     } catch (error) {
       toast.error('Erro ao conectar ao servidor');
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -538,10 +538,10 @@ export default function LandingPage() {
                 </div>
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={isSubmitting}
                   className="w-full py-4 bg-gradient-to-r from-v-blue-500 to-v-blue-600 hover:from-v-blue-600 hover:to-v-blue-700 text-white font-black text-lg rounded-xl flex items-center justify-center gap-3 shadow-xl shadow-v-blue-500/30 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? (
+                  {isSubmitting ? (
                     <>
                       <Loader2 size={20} className="animate-spin" />
                       Processando...
