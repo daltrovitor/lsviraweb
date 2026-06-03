@@ -44,6 +44,7 @@ export class MapsScraperService extends EventEmitter {
     this.isStopped = false;
     this.emit('status', this.userId, 'starting');
     
+    let page: any = null;
     try {
       this.emit('log', this.userId, 'Iniciando navegador invisível...');
       
@@ -111,7 +112,7 @@ export class MapsScraperService extends EventEmitter {
         throw launchErr;
       }
 
-      const page = await this.browser.newPage();
+      page = await this.browser.newPage();
       await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
       await page.setViewport({ width: 1920, height: 2000 });
       await page.setExtraHTTPHeaders({ 'Accept-Language': 'pt-BR,pt;q=0.9' });
@@ -297,6 +298,18 @@ export class MapsScraperService extends EventEmitter {
       
     } catch (error: any) {
       console.error('[MapsScraper] Erro crítico na extração:', error);
+      
+      // Log diagnostics information
+      try {
+        if (page) {
+          const currentUrl = page.url();
+          const currentTitle = await page.title();
+          this.emit('log', this.userId, `Diagnóstico: Página = ${currentUrl} | Título = ${currentTitle}`);
+        }
+      } catch (pageErr) {
+        // ignore
+      }
+
       this.emit('log', this.userId, `Erro crítico na extração: ${error.message}`);
       this.emit('status', this.userId, 'error');
     } finally {

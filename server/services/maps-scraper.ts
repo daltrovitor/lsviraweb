@@ -44,6 +44,7 @@ export class MapsScraperService extends EventEmitter {
     this.isStopped = false;
     this.emit('status', this.userId, 'starting');
     
+    let page: any = null;
     try {
       this.emit('log', this.userId, 'Iniciando extração...');
       console.log(`[MapsScraper] Iniciando navegador invisível para usuário ${this.userId}...`);
@@ -112,7 +113,7 @@ export class MapsScraperService extends EventEmitter {
         throw launchErr;
       }
 
-      const page = await this.browser.newPage();
+      page = await this.browser.newPage();
       await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
       await page.setViewport({ width: 1920, height: 2000 });
       await page.setExtraHTTPHeaders({ 'Accept-Language': 'pt-BR,pt;q=0.9' });
@@ -298,6 +299,18 @@ export class MapsScraperService extends EventEmitter {
       
     } catch (error: any) {
       console.error(`[MapsScraper] Erro crítico na extração:`, error);
+      
+      // Log diagnostics information
+      try {
+        if (page) {
+          const currentUrl = page.url();
+          const currentTitle = await page.title();
+          this.emit('log', this.userId, `Diagnóstico: Página = ${currentUrl} | Título = ${currentTitle}`);
+        }
+      } catch (pageErr) {
+        // ignore
+      }
+
       let errMsg = error && error.message ? error.message : 'Erro desconhecido durante a extração';
       if (errMsg.includes('timeout') || errMsg.includes('waiting for selector')) {
         errMsg = `Tempo limite esgotado. Isso pode ocorrer por lentidão da rede ou bloqueio de robôs pelo Google. (${errMsg})`;
