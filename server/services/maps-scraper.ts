@@ -49,7 +49,7 @@ export class MapsScraperService extends EventEmitter {
       this.emit('log', this.userId, 'Iniciando extração...');
       console.log(`[MapsScraper] Iniciando navegador invisível para usuário ${this.userId}...`);
 
-      // Configuração para Render (usa Chrome do sistema)
+      // Configuração base de lançamento
       const launchOptions: any = {
         headless: 'new',
         args: [
@@ -63,11 +63,15 @@ export class MapsScraperService extends EventEmitter {
         ]
       };
 
-        // Log adicional para diagnóstico (depois de declarar launchOptions)
-        this.emit('log', this.userId, `Debug: launchOptions=${JSON.stringify({ headless: launchOptions.headless, args: launchOptions.args?.slice(0,5) })}`);
+      // Se for Linux, adicionar argumentos para baixo uso de memória
+      if (process.platform === 'linux') {
+        launchOptions.args.push('--single-process');
+        launchOptions.args.push('--no-zygote');
+      }
 
-      // No Render, tentar múltiplos caminhos do Chrome
-      if (process.env.RENDER || process.env.RENDER_EXTERNAL_HOSTNAME) {
+      // No Linux (Render/Railway/etc.), procurar ou configurar Chrome
+      if (process.platform === 'linux' || process.env.RENDER || process.env.RENDER_EXTERNAL_HOSTNAME) {
+        this.emit('log', this.userId, 'Ambiente Linux detectado. Configurando executável do Chrome...');
         const possiblePaths = [
           '/usr/bin/chromium-browser',
           '/usr/bin/chromium',
@@ -82,33 +86,64 @@ export class MapsScraperService extends EventEmitter {
             const fs = require('fs');
             if (fs.existsSync(path)) {
               launchOptions.executablePath = path;
-              console.log(`[MapsScraper] Usando Chrome em: ${path}`);
+              const msg = `Usando Chrome do sistema em: ${path}`;
+              console.log(`[MapsScraper] ${msg}`);
+              this.emit('log', this.userId, msg);
               foundChrome = true;
               break;
             }
           } catch (e) {
-            // Continuar para o próximo caminho
+            // Continuar
           }
         }
         
         // Se não encontrar Chrome do sistema, usar @sparticuz/chromium
         if (!foundChrome) {
           try {
+            this.emit('log', this.userId, 'Nenhum Chrome do sistema encontrado. Tentando carregar @sparticuz/chromium...');
             const chromium = require('@sparticuz/chromium');
             launchOptions.executablePath = await chromium.executablePath();
-            console.log(`[MapsScraper] Usando Chrome via @sparticuz/chromium: ${launchOptions.executablePath}`);
-          } catch (e) {
-            console.log(`[MapsScraper] @sparticuz/chromium não disponível: ${e}`);
-            // Fallback para Puppeteer padrão
+            
+            // Adicionar argumentos necessários do @sparticuz/chromium
+            if (chromium.args && Array.isArray(chromium.args)) {
+              for (const arg of chromium.args) {
+                if (!launchOptions.args.includes(arg)) {
+                  launchOptions.args.push(arg);
+                }
+              }
+            }
+            
+            // Usar o headless recomendado do @sparticuz/chromium
+            if (chromium.headless !== undefined) {
+              launchOptions.headless = chromium.headless;
+            }
+            
+            if (chromium.defaultViewport) {
+              launchOptions.defaultViewport = chromium.defaultViewport;
+            }
+
+            const msg = `Usando Chrome via @sparticuz/chromium: ${launchOptions.executablePath}`;
+            console.log(`[MapsScraper] ${msg}`);
+            this.emit('log', this.userId, msg);
+          } catch (e: any) {
+            const msg = `@sparticuz/chromium não disponível: ${e.message}. Usando Puppeteer padrão.`;
+            console.log(`[MapsScraper] ${msg}`);
+            this.emit('log', this.userId, msg);
           }
         }
       }
 
       try {
+        const readableLaunchOptions = {
+          headless: launchOptions.headless,
+          executablePath: launchOptions.executablePath || 'padrão (interno/sistema)',
+          args: launchOptions.args
+        };
+        this.emit('log', this.userId, `Iniciando Puppeteer com launchOptions: ${JSON.stringify(readableLaunchOptions)}`);
         this.browser = await puppeteer.launch(launchOptions);
         this.emit('log', this.userId, 'Navegador iniciado com sucesso.');
       } catch (launchErr: any) {
-        console.log('[MapsScraper] Erro ao iniciar navegador:', launchErr);
+        console.error('[MapsScraper] Erro ao iniciar navegador:', launchErr);
         this.emit('log', this.userId, `Erro ao iniciar navegador: ${launchErr.message}`);
         throw launchErr;
       }

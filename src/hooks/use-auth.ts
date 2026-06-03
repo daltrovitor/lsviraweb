@@ -23,7 +23,7 @@ export function useAuth() {
       return;
     }
     try {
-      const { data } = await withTimeout(supabase.auth.getSession(), 4000);
+      const { data } = await withTimeout(supabase.auth.getSession(), 10000);
       setSession(data.session);
       setUser(data.session?.user ?? null);
       
@@ -37,7 +37,7 @@ export function useAuth() {
             .select('status')
             .eq('id', data.session.user.id)
             .maybeSingle(),
-          4000
+          10000
         );
         
         console.log('[use-auth] refresh - profile:', profile, 'error:', error);
@@ -71,7 +71,7 @@ export function useAuth() {
               .select('status')
               .eq('id', newSession.user.id)
               .maybeSingle(),
-            4000
+            10000
           );
           
           console.log('[use-auth] onAuthStateChange - profile:', profile, 'error:', error);
