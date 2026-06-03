@@ -46,14 +46,22 @@ export function MapsModule() {
       setLogs((prev) => [...prev, { msg: log.message, time: new Date(log.timestamp) }].slice(-50));
     const onItem = (data: { item: ScrapedPlace }) => setResults((prev) => [...prev, data.item]);
 
+    const onError = (err: any) => {
+      console.error('[Socket Error]', err);
+      const errMsg = typeof err === 'string' ? err : err.message || JSON.stringify(err);
+      setLogs((prev) => [...prev, { msg: `Erro de conexão/servidor: ${errMsg}`, time: new Date() }].slice(-50));
+    };
+
     socket.on('maps-status', onStatus);
     socket.on('maps-log', onLog);
     socket.on('maps-item-scraped', onItem);
+    socket.on('error', onError);
 
     return () => {
       socket.off('maps-status', onStatus);
       socket.off('maps-log', onLog);
       socket.off('maps-item-scraped', onItem);
+      socket.off('error', onError);
     };
   }, []);
 

@@ -102,6 +102,12 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
   useEffect(() => {
     fetchHistory();
 
+    const onError = (err: any) => {
+      console.error('[Socket Error]', err);
+      const errMsg = typeof err === 'string' ? err : err.message || JSON.stringify(err);
+      setLogs(prev => [...prev.slice(-99), { message: `Erro de conexão/servidor: ${errMsg}`, timestamp: new Date() }]);
+    };
+
     socket.on('maps-status', (newStatus: string) => {
       setStatus(newStatus as any);
       if (newStatus === 'starting') {
@@ -134,10 +140,13 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
       setProgress({ current: data.current, total: data.total });
     });
 
+    socket.on('error', onError);
+
     return () => {
       socket.off('maps-status');
       socket.off('maps-log');
       socket.off('maps-item-scraped');
+      socket.off('error', onError);
     };
   }, [query, limit, onlyCellphones, excludeFixedPhones, onlyWithInstagramOrWhatsapp]);
 
