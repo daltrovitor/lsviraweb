@@ -15,27 +15,32 @@ export function useAuth() {
       setLoading(false);
       return;
     }
-    const { data } = await supabase.auth.getSession();
-    setSession(data.session);
-    setUser(data.session?.user ?? null);
-    
-    console.log('[use-auth] refresh - session:', !!data.session, 'user:', !!data.session?.user);
-    
-    // Check if user is approved
-    if (data.session?.user) {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('status')
-        .eq('id', data.session.user.id)
-        .maybeSingle();
+    try {
+      const { data } = await supabase.auth.getSession();
+      setSession(data.session);
+      setUser(data.session?.user ?? null);
       
-      console.log('[use-auth] refresh - profile:', profile, 'error:', error);
-      setIsApproved(profile?.status === 'active');
-    } else {
+      console.log('[use-auth] refresh - session:', !!data.session, 'user:', !!data.session?.user);
+      
+      // Check if user is approved
+      if (data.session?.user) {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('status')
+          .eq('id', data.session.user.id)
+          .maybeSingle();
+        
+        console.log('[use-auth] refresh - profile:', profile, 'error:', error);
+        setIsApproved(profile?.status === 'active');
+      } else {
+        setIsApproved(false);
+      }
+    } catch (err) {
+      console.error('[use-auth] Error in refresh:', err);
       setIsApproved(false);
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -44,27 +49,34 @@ export function useAuth() {
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       console.log('[use-auth] onAuthStateChange - event:', _event, 'session:', !!newSession);
-      setSession(newSession);
-      setUser(newSession?.user ?? null);
-      
-      // Check if user is approved
-      if (newSession?.user && supabase) {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('status')
-          .eq('id', newSession.user.id)
-          .maybeSingle();
+      try {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
         
-        console.log('[use-auth] onAuthStateChange - profile:', profile, 'error:', error);
-        setIsApproved(profile?.status === 'active');
-      } else {
+        // Check if user is approved
+        if (newSession?.user && supabase) {
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('status')
+            .eq('id', newSession.user.id)
+            .maybeSingle();
+          
+          console.log('[use-auth] onAuthStateChange - profile:', profile, 'error:', error);
+          setIsApproved(profile?.status === 'active');
+        } else {
+          setIsApproved(false);
+        }
+      } catch (err) {
+        console.error('[use-auth] Error in onAuthStateChange:', err);
         setIsApproved(false);
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     });
 
-    return () => listener.subscription.unsubscribe();
+    return () => {
+      listener?.subscription?.unsubscribe();
+    };
   }, [refresh]);
 
   const signOut = useCallback(async () => {
