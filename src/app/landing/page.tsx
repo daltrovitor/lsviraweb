@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
 import { 
   ArrowRight, Sparkles, Zap, Shield, TrendingUp, TrendingDown, CheckCircle2, 
@@ -12,6 +14,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 export default function LandingPage() {
+  const router = useRouter();
+  const { user, loading, isApproved } = useAuth();
+
+  useEffect(() => {
+    if (!loading && user && isApproved) {
+      router.replace('/dashboard');
+    }
+  }, [user, loading, isApproved, router]);
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
