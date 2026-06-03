@@ -4,6 +4,13 @@ import { useEffect, useState, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 
+const withTimeout = <T>(promise: Promise<T> | PromiseLike<T>, ms: number): Promise<T> => {
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Timeout de requisição')), ms))
+  ]);
+};
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -16,7 +23,7 @@ export function useAuth() {
       return;
     }
     try {
-      const { data } = await supabase.auth.getSession();
+      const { data } = await withTimeout(supabase.auth.getSession(), 4000);
       setSession(data.session);
       setUser(data.session?.user ?? null);
       
@@ -24,11 +31,14 @@ export function useAuth() {
       
       // Check if user is approved
       if (data.session?.user) {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('status')
-          .eq('id', data.session.user.id)
-          .maybeSingle();
+        const { data: profile, error } = await withTimeout(
+          supabase
+            .from('profiles')
+            .select('status')
+            .eq('id', data.session.user.id)
+            .maybeSingle(),
+          4000
+        );
         
         console.log('[use-auth] refresh - profile:', profile, 'error:', error);
         setIsApproved(profile?.status === 'active');
@@ -55,11 +65,14 @@ export function useAuth() {
         
         // Check if user is approved
         if (newSession?.user && supabase) {
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('status')
-            .eq('id', newSession.user.id)
-            .maybeSingle();
+          const { data: profile, error } = await withTimeout(
+            supabase
+              .from('profiles')
+              .select('status')
+              .eq('id', newSession.user.id)
+              .maybeSingle(),
+            4000
+          );
           
           console.log('[use-auth] onAuthStateChange - profile:', profile, 'error:', error);
           setIsApproved(profile?.status === 'active');
