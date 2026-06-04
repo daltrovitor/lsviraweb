@@ -153,6 +153,29 @@ export class MapsScraperService extends EventEmitter {
       await page.setViewport({ width: 1920, height: 2000 });
       await page.setExtraHTTPHeaders({ 'Accept-Language': 'pt-BR,pt;q=0.9' });
 
+      // Habilitar interceptação de requisições na busca para economizar recursos
+      await page.setRequestInterception(true);
+      page.on('request', (req: any) => {
+        try {
+          const url = req.url().toLowerCase();
+          const resourceType = req.resourceType();
+          if (
+            ['image', 'font', 'media'].includes(resourceType) ||
+            url.includes('/maps/vt') ||
+            url.includes('/vt/') ||
+            url.includes('/cbk') ||
+            url.includes('google-analytics') ||
+            url.includes('doubleclick')
+          ) {
+            req.abort().catch(() => {});
+          } else {
+            req.continue().catch(() => {});
+          }
+        } catch (err) {
+          // Ignorar se a página fechar
+        }
+      });
+
       const searchUrl = `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
       this.emit('log', this.userId, `Buscando por: "${query}"...`);
       this.emit('log', this.userId, `Debug: visitando busca: ${searchUrl}`);
@@ -246,8 +269,32 @@ export class MapsScraperService extends EventEmitter {
           await itemPage.setViewport({ width: 1920, height: 2000 });
           await itemPage.setExtraHTTPHeaders({ 'Accept-Language': 'pt-BR,pt;q=0.9' });
 
+          // Habilitar interceptação de requisições no item para máxima performance e baixo uso de memória
+          await itemPage.setRequestInterception(true);
+          itemPage.on('request', (req: any) => {
+            try {
+              const url = req.url().toLowerCase();
+              const resourceType = req.resourceType();
+              if (
+                ['image', 'stylesheet', 'font', 'media'].includes(resourceType) ||
+                url.includes('/maps/vt') ||
+                url.includes('/vt/') ||
+                url.includes('/cbk') ||
+                url.includes('google-analytics') ||
+                url.includes('doubleclick')
+              ) {
+                req.abort().catch(() => {});
+              } else {
+                req.continue().catch(() => {});
+              }
+            } catch (err) {
+              // Ignorar se a página fechar
+            }
+          });
+
           try {
-            await itemPage.goto(link, { waitUntil: 'domcontentloaded', timeout: 45000 });
+            // Com interceptação de requests, o carregamento do DOM é muito rápido. Reduzimos o timeout para 25s.
+            await itemPage.goto(link, { waitUntil: 'domcontentloaded', timeout: 25000 });
           } catch (navErr: any) {
             this.emit('log', this.userId, `Erro de navegação para ${link}: ${navErr.message}`);
             await itemPage.close().catch(() => {});
