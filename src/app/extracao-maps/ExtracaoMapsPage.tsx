@@ -102,6 +102,10 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
   };
 
   useEffect(() => {
+    socket.emit('get-maps-status');
+  }, []);
+
+  useEffect(() => {
     fetchHistory();
 
     const onError = (err: any) => {
@@ -274,6 +278,8 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
     setSelectedHistoryId(null);
     setResults([]);
     setLogs([{ message: `Iniciando nova pesquisa por "${query}"...`, timestamp: new Date() }]);
+    setStatus('starting');
+    setProgress({ current: 0, total: limit });
     
     socket.emit('start-maps-scrape', { 
       query, 

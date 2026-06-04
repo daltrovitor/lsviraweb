@@ -46,6 +46,32 @@ export const setupSockets = (io: Server) => {
       }
     });
 
+    socket.on('get-maps-status', () => {
+      if (currentUserId) {
+        const scraper = mapsScraperManager.getService(currentUserId);
+        const scraperStatus = scraper.getStatus();
+        socket.emit('maps-status', scraperStatus.status);
+        
+        if (scraperStatus.status === 'extracting' || scraperStatus.status === 'starting') {
+          socket.emit('maps-item-scraped', {
+            item: null,
+            current: scraperStatus.current,
+            total: scraperStatus.total
+          });
+        }
+      }
+    });
+
+    socket.on('get-campaign-status', () => {
+      if (currentUserId) {
+        const campaignService = campaignManager.getService(currentUserId);
+        const activeCampaign = campaignService.getCampaign();
+        if (activeCampaign) {
+          socket.emit('campaign-update', activeCampaign);
+        }
+      }
+    });
+
     // Handlers
     const onWhatsappStatus = (uid: string, status: any) => {
       if (uid === currentUserId) socket.emit('whatsapp-status', status);

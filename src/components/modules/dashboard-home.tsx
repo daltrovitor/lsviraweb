@@ -115,6 +115,7 @@ export function DashboardHomeModule() {
     socket.on('whatsapp-status', onStatus);
     socket.on('campaign-update', onCampaign);
     socket.emit('get-whatsapp-status');
+    socket.emit('get-campaign-status');
 
     return () => {
       socket.off('whatsapp-status', onStatus);

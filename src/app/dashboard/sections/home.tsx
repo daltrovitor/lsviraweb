@@ -126,6 +126,7 @@ export default function DashboardHome() {
     
     // Solicitar status inicial
     socket.emit('get-whatsapp-status');
+    socket.emit('get-campaign-status');
 
     return () => {
       socket.off('whatsapp-status', onStatus);

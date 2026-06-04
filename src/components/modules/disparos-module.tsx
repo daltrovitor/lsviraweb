@@ -34,6 +34,7 @@ export function DisparosModule() {
     socket.on('campaign-update', onCamp);
     socket.on('log', onLog);
     socket.emit('get-whatsapp-status');
+    socket.emit('get-campaign-status');
 
     // Carrega contatos pendentes do localStorage importados da página do Maps
     const pendingContacts = localStorage.getItem('ls_pending_imported_contacts');
