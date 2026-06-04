@@ -1,5 +1,5 @@
-import { MapsModule } from '@/components/modules/maps-module';
+import ExtracaoMapsPage from '@/app/extracao-maps/ExtracaoMapsPage';
 
 export default function MapsPage() {
-  return <MapsModule />;
+  return <ExtracaoMapsPage />;
 }

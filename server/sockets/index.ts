@@ -13,9 +13,30 @@ export const setupSockets = (io: Server) => {
     socket.on('register', (userId: string) => {
       console.log(`Socket ${socket.id} registrado para usuário: ${userId}`);
       currentUserId = userId;
+      
       // Enviar status atual ao conectar
       const waService = whatsappManager.getService(userId);
       socket.emit('whatsapp-status', waService.getStatus());
+
+      // Enviar status do Maps Scraper ao conectar (para restabelecer estado se o usuário recarregar)
+      const scraper = mapsScraperManager.getService(userId);
+      const scraperStatus = scraper.getStatus();
+      socket.emit('maps-status', scraperStatus.status);
+      
+      if (scraperStatus.status === 'extracting' || scraperStatus.status === 'starting') {
+        socket.emit('maps-item-scraped', {
+          item: null,
+          current: scraperStatus.current,
+          total: scraperStatus.total
+        });
+      }
+
+      // Enviar status da campanha ativa ao conectar
+      const campaignService = campaignManager.getService(userId);
+      const activeCampaign = campaignService.getCampaign();
+      if (activeCampaign) {
+        socket.emit('campaign-update', activeCampaign);
+      }
     });
 
     socket.on('get-whatsapp-status', () => {

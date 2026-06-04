@@ -31,10 +31,21 @@ export class MapsScraperService extends EventEmitter {
   private isRunning: boolean = false;
   private browser: any = null;
   public userId: string;
+  private validCount: number = 0;
+  private maxItems: number = 30;
+  private status: 'idle' | 'starting' | 'extracting' | 'completed' | 'error' | 'stopped' = 'idle';
 
   constructor(userId: string) {
     super();
     this.userId = userId;
+  }
+
+  public getStatus() {
+    return {
+      status: this.isRunning ? this.status : 'idle',
+      current: this.validCount,
+      total: this.maxItems
+    };
   }
 
   public async startScrape(options: ScrapeOptions) {
@@ -56,6 +67,9 @@ export class MapsScraperService extends EventEmitter {
     }
     this.isRunning = true;
     this.isStopped = false;
+    this.status = 'starting';
+    this.validCount = 0;
+    this.maxItems = maxItems;
     this.emit('status', this.userId, 'starting');
 
     // Criar a busca no Supabase para salvar leads em tempo real
@@ -277,9 +291,11 @@ export class MapsScraperService extends EventEmitter {
       });
 
       this.emit('log', this.userId, `Encontrados ${links.length} locais. Iniciando extração...`);
+      this.status = 'extracting';
       this.emit('status', this.userId, 'extracting');
 
       let validCount = 0;
+      this.validCount = 0;
       
       for (const link of links) {
         if (this.isStopped) {
@@ -391,6 +407,7 @@ export class MapsScraperService extends EventEmitter {
 
           const result: ScrapedPlace = { ...placeData, url: link };
           validCount++;
+          this.validCount = validCount;
 
           // Inserir lead no banco em tempo real
           if (supabase && searchId) {
@@ -440,6 +457,7 @@ export class MapsScraperService extends EventEmitter {
         } else {
           this.emit('log', this.userId, `Extração finalizada com sucesso! Foram capturados ${validCount} leads qualificados.`);
         }
+        this.status = 'completed';
         this.emit('status', this.userId, 'completed');
       }
       
@@ -451,6 +469,7 @@ export class MapsScraperService extends EventEmitter {
         errMsg = `Tempo limite esgotado. Isso pode ocorrer por lentidão da rede. (${errMsg})`;
       }
       this.emit('log', this.userId, `Ocorreu um erro durante a extração: ${errMsg}`);
+      this.status = 'error';
       this.emit('status', this.userId, 'error');
       throw error;
     } finally {
@@ -469,6 +488,7 @@ export class MapsScraperService extends EventEmitter {
       this.browser.close().catch(() => {});
       this.browser = null;
     }
+    this.status = 'stopped';
     this.emit('status', this.userId, 'stopped');
   }
 }

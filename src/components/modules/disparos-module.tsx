@@ -35,6 +35,20 @@ export function DisparosModule() {
     socket.on('log', onLog);
     socket.emit('get-whatsapp-status');
 
+    // Carrega contatos pendentes do localStorage importados da página do Maps
+    const pendingContacts = localStorage.getItem('ls_pending_imported_contacts');
+    if (pendingContacts) {
+      try {
+        const parsed = JSON.parse(pendingContacts);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setContacts(parsed);
+          localStorage.removeItem('ls_pending_imported_contacts');
+        }
+      } catch (err) {
+        console.error('Erro ao ler contatos importados do Maps:', err);
+      }
+    }
+
     return () => {
       socket.off('whatsapp-status', onStatus);
       socket.off('campaign-update', onCamp);

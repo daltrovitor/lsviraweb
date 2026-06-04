@@ -17,6 +17,10 @@ export class CampaignService extends EventEmitter {
     setInterval(() => this.cleanTimestamps(), 60 * 60 * 1000);
   }
 
+  public getCampaign(): Campaign | null {
+    return this.campaign;
+  }
+
   private cleanTimestamps() {
     const now = Date.now();
     this.sentTimestamps = this.sentTimestamps.filter(t => now - t < 24 * 60 * 60 * 1000);

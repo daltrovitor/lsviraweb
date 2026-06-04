@@ -5,10 +5,10 @@ dotenv.config();
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const serviceKey = process.env.SUPABASE_SERVICE_KEY || '';
+const serviceKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-export const supabase = url && anonKey 
-  ? createClient(url, anonKey, {
+export const supabase = url && (serviceKey || anonKey)
+  ? createClient(url, serviceKey || anonKey, {
       auth: {
         persistSession: false // Não precisa persistir no servidor Node.js local
       }

@@ -121,20 +121,49 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
       if (newStatus === 'completed') {
         fetchHistory();
       }
+
+      // Restaura o histórico e os leads coletados caso o scraper esteja rodando em background
+      if (newStatus === 'extracting') {
+        fetchHistory().then(() => {
+          setHistory(prevHistory => {
+            if (prevHistory.length > 0) {
+              const activeSearch = prevHistory[0];
+              setSelectedHistoryId(activeSearch.id);
+              
+              // Buscar leads que já foram inseridos para a busca atual
+              if (supabase) {
+                supabase
+                  .from('scraped_leads')
+                  .select('*')
+                  .eq('search_id', activeSearch.id)
+                  .then(({ data, error }) => {
+                    if (!error && data) {
+                      setResults(data);
+                      setLogs([{ message: `Restaurando status da busca em background: ${data.length} leads já processados...`, timestamp: new Date() }]);
+                    }
+                  });
+              }
+            }
+            return prevHistory;
+          });
+        });
+      }
     });
 
     socket.on('maps-log', (log: { message: string; timestamp: Date }) => {
       setLogs(prev => [...prev.slice(-99), log]);
     });
 
-    socket.on('maps-item-scraped', (data: { item: Place, current: number, total: number }) => {
-      setResults(prev => {
-        // Garante que não adiciona duplicados
-        if (prev.some(p => p.phone === data.item.phone && p.title === data.item.title)) {
-          return prev;
-        }
-        return [...prev, data.item];
-      });
+    socket.on('maps-item-scraped', (data: { item: Place | null, current: number, total: number }) => {
+      if (data.item) {
+        setResults(prev => {
+          // Garante que não adiciona duplicados
+          if (prev.some(p => p.phone === data.item!.phone && p.title === data.item!.title)) {
+            return prev;
+          }
+          return [...prev, data.item!];
+        });
+      }
       setProgress({ current: data.current, total: data.total });
     });
 
@@ -286,10 +315,8 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
     document.body.removeChild(link);
   };
 
-  // Sanitização e envio para a fila de disprados
+  // Sanitização e envio para a fila de disparos
   const handleImportToCampaign = () => {
-    if (!onImportToCampaign) return;
-    
     // Filtra e sanitiza todos os telefones de leads usando regex robusto
     const sanitizedLeads = filteredResults
       .map(r => {
@@ -306,9 +333,15 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
       return alert('Nenhum lead com telefone celular válido foi encontrado após a sanitização (ex: faltam dígitos ou fixos foram excluídos).');
     }
     
-    const csvLines = sanitizedLeads.map(l => `${l.number}, ${l.name}`).join('\n');
-    onImportToCampaign(csvLines);
-    alert(`Sucesso! ${sanitizedLeads.length} leads foram sanitizados e enviados para a fila de disparo! Vá para a aba "Disparo" para ver seus contatos.`);
+    if (onImportToCampaign) {
+      const csvLines = sanitizedLeads.map(l => `${l.number}, ${l.name}`).join('\n');
+      onImportToCampaign(csvLines);
+      alert(`Sucesso! ${sanitizedLeads.length} leads foram sanitizados e enviados para a fila de disparo! Vá para a aba "Disparo" para ver seus contatos.`);
+    } else {
+      localStorage.setItem('ls_pending_imported_contacts', JSON.stringify(sanitizedLeads));
+      alert(`Sucesso! ${sanitizedLeads.length} leads foram sanitizados e preparados para importação. Redirecionando para a página de disparos...`);
+      window.location.href = '/disparos';
+    }
   };
 
   // dynamic local filtering
