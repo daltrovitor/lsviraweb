@@ -4,6 +4,36 @@ import { useEffect, useState, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 
+// Helper function to fetch profile status with a timeout to prevent hanging on database issues or recursive RLS policies
+async function fetchProfileStatusWithTimeout(userId: string, timeoutMs: number = 4000): Promise<string | null> {
+  if (!supabase) return null;
+
+  const timeoutPromise = new Promise<null>((_, reject) =>
+    setTimeout(() => reject(new Error('Profile fetch timeout')), timeoutMs)
+  );
+
+  const queryPromise = (async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('status')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('[use-auth] Error fetching profile:', error);
+      return null;
+    }
+    return data?.status ?? null;
+  })();
+
+  try {
+    return await Promise.race([queryPromise, timeoutPromise]);
+  } catch (err) {
+    console.error('[use-auth] Profile status fetch failed or timed out:', err);
+    return null;
+  }
+}
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -22,16 +52,8 @@ export function useAuth() {
       
       // Check if user is approved
       if (data.session?.user) {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('status')
-          .eq('id', data.session.user.id)
-          .maybeSingle();
-        
-        if (error) {
-          console.error('[use-auth] Error fetching profile:', error);
-        }
-        setIsApproved(profile?.status === 'active');
+        const status = await fetchProfileStatusWithTimeout(data.session.user.id);
+        setIsApproved(status === 'active');
       } else {
         setIsApproved(false);
       }
@@ -53,17 +75,9 @@ export function useAuth() {
         setUser(newSession?.user ?? null);
         
         // Check if user is approved
-        if (newSession?.user && supabase) {
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('status')
-            .eq('id', newSession.user.id)
-            .maybeSingle();
-          
-          if (error) {
-            console.error('[use-auth] Error fetching profile on change:', error);
-          }
-          setIsApproved(profile?.status === 'active');
+        if (newSession?.user) {
+          const status = await fetchProfileStatusWithTimeout(newSession.user.id);
+          setIsApproved(status === 'active');
         } else {
           setIsApproved(false);
         }
@@ -89,3 +103,4 @@ export function useAuth() {
 
   return { user, session, loading, signOut, refresh, isConfigured: !!supabase, isApproved };
 }
+

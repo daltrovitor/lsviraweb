@@ -98,7 +98,8 @@ export function DashboardHomeModule() {
     fetchStats();
 
     const onStatus = (s: WhatsAppStatus) => setWaStatus(s);
-    const onCampaign = (camp: Campaign) => {
+    const onCampaign = (camp: Campaign | null | undefined) => {
+      if (!camp) return;
       setActiveCampaign(camp);
       const totalSent = dbStatsRef.current.sent + (camp?.stats?.sent || 0);
       const totalError = dbStatsRef.current.error + (camp?.stats?.error || 0);
@@ -108,7 +109,9 @@ export function DashboardHomeModule() {
         sent: totalSent,
         successRate: totalAttempts > 0 ? parseFloat(((totalSent / totalAttempts) * 100).toFixed(1)) : 100,
         speed:
-          camp.status === 'running' ? Math.round(60 / ((camp.delayMin + camp.delayMax) / 2)) : 0,
+          camp?.status === 'running' && camp?.delayMin !== undefined && camp?.delayMax !== undefined
+            ? Math.round(60 / ((camp.delayMin + camp.delayMax) / 2))
+            : 0,
       }));
     };
 
@@ -309,33 +312,33 @@ export function DashboardHomeModule() {
                         Campanha ativa
                       </Badge>
                       <p className="font-bold text-white mt-2 text-sm line-clamp-2">
-                        {activeCampaign.message.slice(0, 80)}…
+                        {activeCampaign?.message?.slice(0, 80) || ''}…
                       </p>
                     </div>
-                    <Badge variant="live">{activeCampaign.status}</Badge>
+                    <Badge variant="live">{activeCampaign?.status}</Badge>
                   </div>
                   <div className="flex justify-between text-xs font-bold text-slate-400 mb-2">
                     <span>Progresso</span>
                     <span>
-                      {activeCampaign.stats.sent} / {activeCampaign.stats.total}
+                      {activeCampaign?.stats?.sent || 0} / {activeCampaign?.stats?.total || 0}
                     </span>
                   </div>
                   <ProgressBar
-                    value={activeCampaign.stats.sent}
-                    max={activeCampaign.stats.total}
+                    value={activeCampaign?.stats?.sent || 0}
+                    max={activeCampaign?.stats?.total || 0}
                     className="mb-4 bg-white/10"
                   />
                   <div className="flex flex-wrap items-center gap-4">
                     <div>
                       <span className="text-[10px] text-slate-400 uppercase font-bold">Sucesso </span>
-                      <span className="text-lg font-black text-emerald-400">{activeCampaign.stats.sent}</span>
+                      <span className="text-lg font-black text-emerald-400">{activeCampaign?.stats?.sent || 0}</span>
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-400 uppercase font-bold">Falhas </span>
-                      <span className="text-lg font-black text-red-400">{activeCampaign.stats.error}</span>
+                      <span className="text-lg font-black text-red-400">{activeCampaign?.stats?.error || 0}</span>
                     </div>
                     <div className="flex gap-2 ml-auto">
-                      {activeCampaign.status === 'running' ? (
+                      {activeCampaign?.status === 'running' ? (
                         <button
                           onClick={() => socket.emit('pause-campaign')}
                           className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white"
