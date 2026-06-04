@@ -93,8 +93,8 @@ export function DisparosModule() {
 
       const { data, error } = await supabase
         .from('scraped_leads')
-        .select('title, phone')
-        .eq('user_id', user.id);
+        .select('title, phone, scraped_searches!inner(user_id)')
+        .eq('scraped_searches.user_id', user.id);
 
       if (error) throw error;
       if (!data || data.length === 0) {

@@ -77,13 +77,13 @@ export class MapsScraperService extends EventEmitter {
     if (supabase) {
       try {
         const { data: searchData, error: searchErr } = await supabase
-          .from('maps_searches')
+          .from('scraped_searches')
           .insert({
             user_id: this.userId,
             query: query,
             target_limit: maxItems,
-            leads_found: 0,
-            specifications: {
+            found_count: 0,
+            filters: {
               onlyCellphones,
               excludeFixedPhones: excludeFixedPhones || onlyCellphones,
               onlyWithInstagramOrWhatsapp,
@@ -415,7 +415,6 @@ export class MapsScraperService extends EventEmitter {
               const { error: leadErr } = await supabase
                 .from('scraped_leads')
                 .insert({
-                  user_id: this.userId,
                   search_id: searchId,
                   title: result.title,
                   address: result.address || '',
@@ -429,10 +428,10 @@ export class MapsScraperService extends EventEmitter {
               if (leadErr) {
                 console.error(`[MapsScraper] Erro ao salvar lead ${result.title} no Supabase:`, leadErr);
               } else {
-                // Atualizar leads_found na busca
+                // Atualizar found_count na busca
                 await supabase
-                  .from('maps_searches')
-                  .update({ leads_found: validCount })
+                  .from('scraped_searches')
+                  .update({ found_count: validCount })
                   .eq('id', searchId);
               }
             } catch (dbErr: any) {

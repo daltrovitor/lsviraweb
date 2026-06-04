@@ -43,9 +43,9 @@ interface HistorySearch {
   id: string;
   query: string;
   target_limit: number;
-  leads_found: number;
+  found_count: number;
   created_at: string;
-  specifications: any;
+  filters: any;
 }
 
 interface MapsPageProps {
@@ -90,7 +90,7 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
       if (!user) return;
 
       const { data, error } = await supabase
-        .from('maps_searches')
+        .from('scraped_searches')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -189,13 +189,13 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
 
       // 1. Salvar metadados da busca
       const { data: searchData, error: searchErr } = await supabase
-        .from('maps_searches')
+        .from('scraped_searches')
         .insert({
           user_id: user.id,
           query: searchQuery,
           target_limit: targetLimit,
-          leads_found: finalLeads.length,
-          specifications: {
+          found_count: finalLeads.length,
+          filters: {
             onlyCellphones,
             excludeFixedPhones: onlyCellphones,
             onlyWithInstagramOrWhatsapp,
@@ -213,7 +213,6 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
       // 2. Salvar leads em lote
       if (finalLeads.length > 0) {
         const leadsToInsert = finalLeads.map(lead => ({
-          user_id: user.id,
           search_id: searchData.id,
           title: lead.title,
           address: lead.address || '',
@@ -245,12 +244,12 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
     setLimit(search.target_limit);
     
     // Tentar ler especificações salvas
-    if (search.specifications) {
-      setOnlyCellphones(!!search.specifications.onlyCellphones);
-      setOnlyWithInstagramOrWhatsapp(!!search.specifications.onlyWithInstagramOrWhatsapp);
-      setOnlyWithWebsite(!!search.specifications.onlyWithWebsite);
-      setScrapeMinRating(Number(search.specifications.minRating || 0));
-      setScrapeMinReviews(Number(search.specifications.minReviews || 0));
+    if (search.filters) {
+      setOnlyCellphones(!!search.filters.onlyCellphones);
+      setOnlyWithInstagramOrWhatsapp(!!search.filters.onlyWithInstagramOrWhatsapp);
+      setOnlyWithWebsite(!!search.filters.onlyWithWebsite);
+      setScrapeMinRating(Number(search.filters.minRating || 0));
+      setScrapeMinReviews(Number(search.filters.minReviews || 0));
     }
 
     try {
@@ -622,7 +621,7 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
                       <div className="text-[9px] text-slate-400 mt-1 flex items-center gap-1.5">
                         <span>{new Date(search.created_at).toLocaleDateString('pt-BR')}</span>
                         <span className="w-1 h-1 rounded-full bg-slate-300" />
-                        <span className="font-semibold text-blue-900">{search.leads_found} leads salvos</span>
+                        <span className="font-semibold text-blue-900">{search.found_count} leads salvos</span>
                       </div>
                     </div>
                     <ChevronRight size={14} className="text-slate-400 group-hover:text-blue-900 transition-colors group-hover:translate-x-0.5" />
