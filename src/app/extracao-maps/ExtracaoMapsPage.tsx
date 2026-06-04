@@ -57,9 +57,11 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
   const [limit, setLimit] = useState(15);
   
   // Custom specifications toggles
-  const [onlyCellphones, setOnlyCellphones] = useState(false);
-  const [excludeFixedPhones, setExcludeFixedPhones] = useState(true);
+  const [onlyCellphones, setOnlyCellphones] = useState(true);
   const [onlyWithInstagramOrWhatsapp, setOnlyWithInstagramOrWhatsapp] = useState(false);
+  const [onlyWithWebsite, setOnlyWithWebsite] = useState(false);
+  const [scrapeMinRating, setScrapeMinRating] = useState<number>(0);
+  const [scrapeMinReviews, setScrapeMinReviews] = useState<number>(0);
 
   const [status, setStatus] = useState<'idle' | 'starting' | 'extracting' | 'completed' | 'error' | 'stopped'>('idle');
   const [logs, setLogs] = useState<{ message: string; timestamp: Date }[]>([]);
@@ -148,7 +150,7 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
       socket.off('maps-item-scraped');
       socket.off('error', onError);
     };
-  }, [query, limit, onlyCellphones, excludeFixedPhones, onlyWithInstagramOrWhatsapp]);
+  }, [query, limit, onlyCellphones, onlyWithInstagramOrWhatsapp, onlyWithWebsite, scrapeMinRating, scrapeMinReviews]);
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -170,8 +172,11 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
           leads_found: finalLeads.length,
           specifications: {
             onlyCellphones,
-            excludeFixedPhones,
-            onlyWithInstagramOrWhatsapp
+            excludeFixedPhones: onlyCellphones,
+            onlyWithInstagramOrWhatsapp,
+            onlyWithWebsite,
+            minRating: scrapeMinRating,
+            minReviews: scrapeMinReviews
           }
         })
         .select('*')
@@ -217,8 +222,10 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
     // Tentar ler especificações salvas
     if (search.specifications) {
       setOnlyCellphones(!!search.specifications.onlyCellphones);
-      setExcludeFixedPhones(!!search.specifications.excludeFixedPhones);
       setOnlyWithInstagramOrWhatsapp(!!search.specifications.onlyWithInstagramOrWhatsapp);
+      setOnlyWithWebsite(!!search.specifications.onlyWithWebsite);
+      setScrapeMinRating(Number(search.specifications.minRating || 0));
+      setScrapeMinReviews(Number(search.specifications.minReviews || 0));
     }
 
     try {
@@ -248,8 +255,11 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
       query, 
       limit,
       onlyCellphones,
-      excludeFixedPhones,
-      onlyWithInstagramOrWhatsapp
+      excludeFixedPhones: onlyCellphones,
+      onlyWithInstagramOrWhatsapp,
+      onlyWithWebsite,
+      minRating: scrapeMinRating,
+      minReviews: scrapeMinReviews
     });
   };
 
@@ -403,13 +413,13 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
               {/* Toggle specs container */}
               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex flex-col gap-3.5 mt-2">
                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                  <Filter size={10} /> Sanitização em Tempo Real
+                  <Filter size={10} /> Filtros de Qualificação
                 </h4>
 
                 <label className="flex items-center justify-between cursor-pointer group">
                   <div className="flex flex-col">
-                    <span className="text-xs font-bold text-slate-700 group-hover:text-blue-900 transition-colors">Apenas Números Celulares</span>
-                    <span className="text-[9px] text-slate-400">Foca em contatos móveis (9 dígitos após DDD)</span>
+                    <span className="text-xs font-bold text-slate-700 group-hover:text-blue-900 transition-colors">Apenas Celular / WhatsApp</span>
+                    <span className="text-[9px] text-slate-400">Ignora fixos e foca em celulares</span>
                   </div>
                   <input
                     type="checkbox"
@@ -422,22 +432,8 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
 
                 <label className="flex items-center justify-between cursor-pointer group">
                   <div className="flex flex-col">
-                    <span className="text-xs font-bold text-slate-700 group-hover:text-blue-900 transition-colors">Bloquear Telefones Fixos</span>
-                    <span className="text-[9px] text-slate-400">Ignora fixos comerciais (10 dígitos)</span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    disabled={isWorking}
-                    checked={excludeFixedPhones}
-                    onChange={(e) => setExcludeFixedPhones(e.target.checked)}
-                    className="w-4 h-4 rounded text-blue-900 focus:ring-blue-900"
-                  />
-                </label>
-
-                <label className="flex items-center justify-between cursor-pointer group">
-                  <div className="flex flex-col">
                     <span className="text-xs font-bold text-slate-700 group-hover:text-blue-900 transition-colors">Instagram ou WhatsApp</span>
-                    <span className="text-[9px] text-slate-400">Filtra sites corporativos genéricos</span>
+                    <span className="text-[9px] text-slate-400">Busca links de redes sociais no site</span>
                   </div>
                   <input
                     type="checkbox"
@@ -447,6 +443,52 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
                     className="w-4 h-4 rounded text-blue-900 focus:ring-blue-900"
                   />
                 </label>
+
+                <label className="flex items-center justify-between cursor-pointer group">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-slate-700 group-hover:text-blue-900 transition-colors">Apenas com Website</span>
+                    <span className="text-[9px] text-slate-400">Filtra locais que possuem website</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    disabled={isWorking}
+                    checked={onlyWithWebsite}
+                    onChange={(e) => setOnlyWithWebsite(e.target.checked)}
+                    className="w-4 h-4 rounded text-blue-900 focus:ring-blue-900"
+                  />
+                </label>
+
+                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-200">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 block mb-1">Nota Mínima</label>
+                    <select
+                      disabled={isWorking}
+                      value={scrapeMinRating}
+                      onChange={(e) => setScrapeMinRating(Number(e.target.value))}
+                      className="w-full bg-white border border-slate-200 rounded-xl py-1.5 px-2 text-[11px] focus:outline-none focus:ring-1 focus:ring-blue-900 transition-colors text-slate-700 font-semibold"
+                    >
+                      <option value={0}>Todas</option>
+                      <option value={4.0}>★ ≥ 4.0</option>
+                      <option value={4.5}>★ ≥ 4.5</option>
+                      <option value={4.8}>★ ≥ 4.8</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 block mb-1">Mín. Avaliações</label>
+                    <select
+                      disabled={isWorking}
+                      value={scrapeMinReviews}
+                      onChange={(e) => setScrapeMinReviews(Number(e.target.value))}
+                      className="w-full bg-white border border-slate-200 rounded-xl py-1.5 px-2 text-[11px] focus:outline-none focus:ring-1 focus:ring-blue-900 transition-colors text-slate-700 font-semibold"
+                    >
+                      <option value={0}>Todas</option>
+                      <option value={10}>≥ 10 avaliações</option>
+                      <option value={50}>≥ 50 avaliações</option>
+                      <option value={100}>≥ 100 avaliações</option>
+                    </select>
+                  </div>
+                </div>
               </div>
 
               <div className="mt-4 flex gap-2">

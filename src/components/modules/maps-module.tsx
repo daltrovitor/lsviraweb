@@ -32,8 +32,10 @@ export function MapsModule() {
   const [limit, setLimit] = useState(50);
   const [filters, setFilters] = useState({
     onlyCellphones: true,
-    excludeFixedPhones: true,
     onlyWithInstagramOrWhatsapp: false,
+    onlyWithWebsite: false,
+    minRating: 0,
+    minReviews: 0,
   });
   const [status, setStatus] = useState<ScrapeStatus>('idle');
   const [results, setResults] = useState<ScrapedPlace[]>([]);
@@ -65,13 +67,26 @@ export function MapsModule() {
     };
   }, []);
 
-  const toggle = (key: keyof typeof filters) => setFilters((p) => ({ ...p, [key]: !p[key] }));
+  const toggle = (key: keyof typeof filters) => {
+    if (typeof filters[key] === 'boolean') {
+      setFilters((p) => ({ ...p, [key]: !p[key] }));
+    }
+  };
 
   const startScrape = () => {
     if (!query.trim()) return alert('Digite um termo de busca');
     setResults([]);
     setLogs([]);
-    socket.emit('start-maps-scrape', { query, limit, ...filters });
+    socket.emit('start-maps-scrape', {
+      query,
+      limit,
+      onlyCellphones: filters.onlyCellphones,
+      excludeFixedPhones: filters.onlyCellphones,
+      onlyWithInstagramOrWhatsapp: filters.onlyWithInstagramOrWhatsapp,
+      onlyWithWebsite: filters.onlyWithWebsite,
+      minRating: filters.minRating,
+      minReviews: filters.minReviews
+    });
   };
 
   const saveToSupabase = async () => {
@@ -200,27 +215,76 @@ export function MapsModule() {
                 <p className="text-[11px] font-bold text-slate-500 uppercase mb-2 flex items-center gap-1">
                   <Filter size={12} /> Filtros
                 </p>
-                {(
-                  [
-                    ['onlyCellphones', 'Apenas celulares'],
-                    ['excludeFixedPhones', 'Excluir telefones fixos'],
-                    ['onlyWithInstagramOrWhatsapp', 'Com Instagram ou WA.me'],
-                  ] as const
-                ).map(([key, label]) => (
+                <div className="space-y-2">
                   <button
-                    key={key}
                     type="button"
-                    onClick={() => toggle(key)}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 mb-2 text-left"
+                    onClick={() => toggle('onlyCellphones')}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 text-left"
                   >
-                    {filters[key] ? (
+                    {filters.onlyCellphones ? (
                       <CheckSquare className="text-v-blue-600" size={18} />
                     ) : (
                       <Square className="text-slate-300" size={18} />
                     )}
-                    <span className="text-sm font-semibold text-slate-700">{label}</span>
+                    <span className="text-sm font-semibold text-slate-700">Apenas Celulares / WhatsApp</span>
                   </button>
-                ))}
+
+                  <button
+                    type="button"
+                    onClick={() => toggle('onlyWithInstagramOrWhatsapp')}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 text-left"
+                  >
+                    {filters.onlyWithInstagramOrWhatsapp ? (
+                      <CheckSquare className="text-v-blue-600" size={18} />
+                    ) : (
+                      <Square className="text-slate-300" size={18} />
+                    )}
+                    <span className="text-sm font-semibold text-slate-700">Com Instagram ou WA.me</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => toggle('onlyWithWebsite')}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 text-left"
+                  >
+                    {filters.onlyWithWebsite ? (
+                      <CheckSquare className="text-v-blue-600" size={18} />
+                    ) : (
+                      <Square className="text-slate-300" size={18} />
+                    )}
+                    <span className="text-sm font-semibold text-slate-700">Apenas com Website</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 block mb-1">Nota Mínima</label>
+                    <select
+                      value={filters.minRating}
+                      onChange={(e) => setFilters(p => ({ ...p, minRating: Number(e.target.value) }))}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-v-blue-500 transition-colors text-slate-700 font-semibold"
+                    >
+                      <option value={0}>Sem filtro</option>
+                      <option value={4.0}>★ ≥ 4.0</option>
+                      <option value={4.5}>★ ≥ 4.5</option>
+                      <option value={4.8}>★ ≥ 4.8</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 block mb-1">Mínimo Avaliações</label>
+                    <select
+                      value={filters.minReviews}
+                      onChange={(e) => setFilters(p => ({ ...p, minReviews: Number(e.target.value) }))}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-v-blue-500 transition-colors text-slate-700 font-semibold"
+                    >
+                      <option value={0}>Sem filtro</option>
+                      <option value={10}>≥ 10 avaliações</option>
+                      <option value={50}>≥ 50 avaliações</option>
+                      <option value={100}>≥ 100 avaliações</option>
+                    </select>
+                  </div>
+                </div>
               </div>
               {!running ? (
                 <Button variant="primary" fullWidth className="py-4" onClick={startScrape}>

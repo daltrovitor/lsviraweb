@@ -109,7 +109,7 @@ export const setupSockets = (io: Server) => {
       await whatsappManager.getService(currentUserId).logout();
     });
 
-    socket.on('start-maps-scrape', async ({ query, limit, onlyCellphones, excludeFixedPhones, onlyWithInstagramOrWhatsapp }) => {
+    socket.on('start-maps-scrape', async ({ query, limit, onlyCellphones, excludeFixedPhones, onlyWithInstagramOrWhatsapp, onlyWithWebsite, minRating, minReviews }) => {
       if (!currentUserId) return socket.emit('error', 'Não registrado');
       console.log(`[Maps Scrape] ✓ Iniciando para usuário ${currentUserId}: "${query}" (limite: ${limit})`);
       try {
@@ -120,7 +120,10 @@ export const setupSockets = (io: Server) => {
           limit,
           onlyCellphones,
           excludeFixedPhones,
-          onlyWithInstagramOrWhatsapp
+          onlyWithInstagramOrWhatsapp,
+          onlyWithWebsite,
+          minRating,
+          minReviews
         });
         console.log(`[Maps Scrape] ✓ Scrape completado para ${currentUserId}`);
       } catch (err: any) {

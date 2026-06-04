@@ -63,6 +63,9 @@ export interface ScrapeOptions {
   onlyCellphones?: boolean;
   excludeFixedPhones?: boolean;
   onlyWithInstagramOrWhatsapp?: boolean;
+  onlyWithWebsite?: boolean;
+  minRating?: number;
+  minReviews?: number;
 }
 
 export interface User {
