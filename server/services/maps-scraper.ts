@@ -24,6 +24,7 @@ export interface ScrapeOptions {
 
 export class MapsScraperService extends EventEmitter {
   private isStopped: boolean = false;
+  private isRunning: boolean = false;
   private browser: any = null;
   public userId: string;
 
@@ -41,6 +42,12 @@ export class MapsScraperService extends EventEmitter {
       onlyWithInstagramOrWhatsapp = false
     } = options;
 
+    // Impedir múltiplas execuções simultâneas (causa principal de 6+ browsers abrindo ao mesmo tempo)
+    if (this.isRunning) {
+      this.emit('log', this.userId, 'Extração já em andamento. Aguarde a conclusão ou pare antes de iniciar outra.');
+      return;
+    }
+    this.isRunning = true;
     this.isStopped = false;
     this.emit('status', this.userId, 'starting');
     
@@ -180,7 +187,7 @@ export class MapsScraperService extends EventEmitter {
       this.emit('log', this.userId, `Buscando por: "${query}"...`);
       this.emit('log', this.userId, `Debug: visitando busca: ${searchUrl}`);
       try {
-        await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
         this.emit('log', this.userId, 'Página de busca carregada.');
 
         // Lidar com a tela de consentimento de cookies se ela aparecer
@@ -265,45 +272,19 @@ export class MapsScraperService extends EventEmitter {
 
         try {
           this.emit('log', this.userId, `Abrindo página item: ${link}`);
-          const itemPage = await this.browser.newPage();
-          await itemPage.setViewport({ width: 1920, height: 2000 });
-          await itemPage.setExtraHTTPHeaders({ 'Accept-Language': 'pt-BR,pt;q=0.9' });
 
-          // Habilitar interceptação de requisições no item para máxima performance e baixo uso de memória
-          await itemPage.setRequestInterception(true);
-          itemPage.on('request', (req: any) => {
-            try {
-              const url = req.url().toLowerCase();
-              const resourceType = req.resourceType();
-              if (
-                ['image', 'stylesheet', 'font', 'media'].includes(resourceType) ||
-                url.includes('/maps/vt') ||
-                url.includes('/vt/') ||
-                url.includes('/cbk') ||
-                url.includes('google-analytics') ||
-                url.includes('doubleclick')
-              ) {
-                req.abort().catch(() => {});
-              } else {
-                req.continue().catch(() => {});
-              }
-            } catch (err) {
-              // Ignorar se a página fechar
-            }
-          });
-
+          // Reutiliza a MESMA aba (page) para cada item em vez de abrir uma nova.
+          // Isso economiza memória e evita erros de "Requesting main frame too early!".
           try {
-            // Com interceptação de requests, o carregamento do DOM é muito rápido. Reduzimos o timeout para 25s.
-            await itemPage.goto(link, { waitUntil: 'domcontentloaded', timeout: 25000 });
+            await page.goto(link, { waitUntil: 'domcontentloaded', timeout: 45000 });
           } catch (navErr: any) {
             this.emit('log', this.userId, `Erro de navegação para ${link}: ${navErr.message}`);
-            await itemPage.close().catch(() => {});
             continue;
           }
 
-          await itemPage.waitForSelector('h1', { timeout: 6000 }).catch(() => {});
+          await page.waitForSelector('h1', { timeout: 8000 }).catch(() => {});
 
-          const placeData = await itemPage.evaluate(() => {
+          const placeData = await page.evaluate(() => {
             const title = document.querySelector('h1')?.textContent?.trim() || '';
             const address = document.querySelector('button[data-item-id="address"]')?.textContent?.trim() || '';
             const phone = document.querySelector('button[data-item-id^="phone:tel:"]')?.textContent?.trim() || 
@@ -318,8 +299,7 @@ export class MapsScraperService extends EventEmitter {
             return { title, address, phone, website, rating, category };
           });
 
-          await itemPage.close().catch(() => {});
-          this.emit('log', this.userId, `Página item fechada: ${link}`);
+          this.emit('log', this.userId, `Dados extraídos de: ${link}`);
 
           if (!placeData.title) continue;
 
@@ -367,7 +347,8 @@ export class MapsScraperService extends EventEmitter {
           console.log(`[MapsScraper] Erro ao extrair link: ${itemErr.message}`);
         }
         
-        await new Promise(r => setTimeout(r, 200));
+        // Delay maior entre itens para evitar detecção de bot e reduzir uso de CPU
+        await new Promise(r => setTimeout(r, 500 + Math.random() * 500));
       }
 
       if (!this.isStopped) {
@@ -401,6 +382,7 @@ export class MapsScraperService extends EventEmitter {
       this.emit('status', this.userId, 'error');
       throw error;
     } finally {
+      this.isRunning = false;
       if (this.browser) {
         await this.browser.close();
         this.browser = null;
@@ -410,6 +392,7 @@ export class MapsScraperService extends EventEmitter {
 
   public stop() {
     this.isStopped = true;
+    this.isRunning = false;
     if (this.browser) {
       this.browser.close().catch(() => {});
       this.browser = null;
