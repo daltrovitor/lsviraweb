@@ -218,7 +218,7 @@ CREATE TABLE IF NOT EXISTS public.scraper_jobs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   query TEXT NOT NULL,
-  limit INTEGER DEFAULT 30,
+  "limit" INTEGER DEFAULT 30,
   only_cellphones BOOLEAN DEFAULT false,
   exclude_fixed_phones BOOLEAN DEFAULT false,
   only_with_instagram_or_whatsapp BOOLEAN DEFAULT false,
