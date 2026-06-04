@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Send, Users, Phone, Upload, Play, Pause, Square } from 'lucide-react';
+import { Send, Users, Phone, Upload, Play, Pause, Square, MapPin, Loader2 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { socket } from '@/services/socket';
 import { supabase } from '@/lib/supabase';
@@ -17,6 +17,7 @@ import { loadAutomationFromStorage } from '@/lib/automation-storage';
 export function DisparosModule() {
   const [waStatus, setWaStatus] = useState<WhatsAppStatus>({ connected: false, state: 'disconnected' });
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [loadingLeads, setLoadingLeads] = useState(false);
   const [message, setMessage] = useState('Olá {nome}, tudo bem?');
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -66,6 +67,69 @@ export function DisparosModule() {
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const importFromMapsScrape = async () => {
+    if (!supabase) return alert('Supabase não configurado');
+    setLoadingLeads(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Não autenticado');
+
+      const { data, error } = await supabase
+        .from('scraped_leads')
+        .select('title, phone')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        alert('Nenhum lead encontrado no histórico do Google Maps.');
+        return;
+      }
+
+      // Sanitizar e converter em contatos
+      const sanitizeWhatsAppNumber = (num: string): string => {
+        const clean = num.replace(/\D/g, '');
+        if (clean.length === 0) return '';
+        if (clean.length >= 12 && clean.startsWith('55')) return clean;
+        if (clean.length >= 10 && clean.length <= 11) return '55' + clean;
+        return clean;
+      };
+
+      const mappedContacts: Contact[] = data
+        .map((lead: any) => {
+          const cleanNum = sanitizeWhatsAppNumber(lead.phone);
+          if (!cleanNum) return null;
+          return {
+            name: lead.title || 'Sem nome',
+            number: cleanNum,
+          };
+        })
+        .filter(Boolean) as Contact[];
+
+      // Remover duplicados por número
+      const uniqueContacts: Contact[] = [];
+      const numbersSeen = new Set<string>();
+      for (const c of mappedContacts) {
+        if (!numbersSeen.has(c.number)) {
+          numbersSeen.add(c.number);
+          uniqueContacts.push(c);
+        }
+      }
+
+      if (uniqueContacts.length === 0) {
+        alert('Nenhum contato com número válido foi encontrado nos leads salvos.');
+        return;
+      }
+
+      setContacts(uniqueContacts);
+      alert(`${uniqueContacts.length} contatos carregados com sucesso do histórico do Google Maps!`);
+    } catch (err: any) {
+      console.error('Erro ao carregar leads do Maps:', err);
+      alert(`Falha ao carregar leads: ${err.message}`);
+    } finally {
+      setLoadingLeads(false);
     }
   };
 
@@ -136,10 +200,14 @@ export function DisparosModule() {
               Contatos ({contacts.length})
             </CardTitle>
             <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
-            <div className="flex gap-3 mb-4">
-              <Button variant="secondary" fullWidth onClick={() => fileInputRef.current?.click()} loading={uploading}>
+            <div className="flex flex-col sm:flex-row gap-3 mb-4">
+              <Button variant="secondary" className="flex-1" onClick={() => fileInputRef.current?.click()} loading={uploading}>
                 <Upload size={18} />
                 Importar CSV
+              </Button>
+              <Button variant="outline" className="flex-1" onClick={importFromMapsScrape} loading={loadingLeads}>
+                {loadingLeads ? <Loader2 className="animate-spin" size={18} /> : <MapPin size={18} />}
+                Importar do Maps
               </Button>
               <Button variant="outline" onClick={() => setContacts([])}>
                 Limpar
