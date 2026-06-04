@@ -52,8 +52,8 @@ export default function DashboardHome() {
       // Buscar leads extraídos
       const { data: leads } = await supabase
         .from('scraped_leads')
-        .select('id, search_id!inner(user_id)')
-        .eq('search_id.user_id', user.id);
+        .select('id, scraped_searches!inner(user_id)')
+        .eq('scraped_searches.user_id', user.id);
       const totalExtracted = leads?.length || 0;
 
       // Buscar campanhas do usuário para calcular histórico de disparos
