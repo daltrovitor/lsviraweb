@@ -87,49 +87,7 @@ export default function MapsSection() {
   };
 
   const saveToSupabase = async () => {
-    if (results.length === 0) return alert('Nenhum lead para salvar');
-    if (!supabase) return alert('Supabase não configurado');
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return alert('Usuário não autenticado');
-
-    try {
-      // 1. Criar a busca
-      const { data: search, error: searchErr } = await supabase
-        .from('scraped_searches')
-        .insert({
-          user_id: user.id,
-          query,
-          target_limit: limit,
-          found_count: results.length,
-          filters
-        })
-        .select('*')
-        .single();
-        
-      if (searchErr) throw searchErr;
-
-      // 2. Inserir leads
-      const leadsToInsert = results.map(r => ({
-        search_id: search.id,
-        title: r.title,
-        address: r.address,
-        phone: r.phone,
-        website: r.website,
-        rating: r.rating,
-        category: r.category,
-        url: r.url
-      }));
-
-      const { error: leadsErr } = await supabase
-        .from('scraped_leads')
-        .insert(leadsToInsert);
-
-      if (leadsErr) throw leadsErr;
-      
-      alert('Busca e leads salvos com sucesso no histórico!');
-    } catch (err: any) {
-      alert(`Erro ao salvar: ${err.message}`);
-    }
+    alert('Sua busca e todos os leads já são salvos automaticamente no histórico em tempo real enquanto a extração está rodando!');
   };
 
   const exportCSV = () => {

@@ -1,6 +1,7 @@
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { EventEmitter } from 'events';
+import { supabase } from '../utils/supabase';
 
 puppeteer.use(StealthPlugin());
 
@@ -56,6 +57,40 @@ export class MapsScraperService extends EventEmitter {
     this.isRunning = true;
     this.isStopped = false;
     this.emit('status', this.userId, 'starting');
+
+    // Criar a busca no Supabase para salvar leads em tempo real
+    let searchId: string | null = null;
+    if (supabase) {
+      try {
+        const { data: searchData, error: searchErr } = await supabase
+          .from('maps_searches')
+          .insert({
+            user_id: this.userId,
+            query: query,
+            target_limit: maxItems,
+            leads_found: 0,
+            specifications: {
+              onlyCellphones,
+              excludeFixedPhones: excludeFixedPhones || onlyCellphones,
+              onlyWithInstagramOrWhatsapp,
+              onlyWithWebsite,
+              minRating,
+              minReviews
+            }
+          })
+          .select('id')
+          .single();
+
+        if (searchErr) {
+          console.error('[MapsScraper] Erro ao criar registro de busca no Supabase:', searchErr);
+        } else if (searchData) {
+          searchId = searchData.id;
+          console.log(`[MapsScraper] Registro de busca criado no Supabase com ID: ${searchId}`);
+        }
+      } catch (dbErr: any) {
+        console.error('[MapsScraper] Exceção ao conectar com Supabase:', dbErr.message);
+      }
+    }
     
     let page: any = null;
     try {
@@ -356,6 +391,37 @@ export class MapsScraperService extends EventEmitter {
 
           const result: ScrapedPlace = { ...placeData, url: link };
           validCount++;
+
+          // Inserir lead no banco em tempo real
+          if (supabase && searchId) {
+            try {
+              const { error: leadErr } = await supabase
+                .from('scraped_leads')
+                .insert({
+                  user_id: this.userId,
+                  search_id: searchId,
+                  title: result.title,
+                  address: result.address || '',
+                  phone: result.phone || '',
+                  website: result.website || '',
+                  rating: result.rating || '',
+                  category: result.category || '',
+                  url: result.url || ''
+                });
+
+              if (leadErr) {
+                console.error(`[MapsScraper] Erro ao salvar lead ${result.title} no Supabase:`, leadErr);
+              } else {
+                // Atualizar leads_found na busca
+                await supabase
+                  .from('maps_searches')
+                  .update({ leads_found: validCount })
+                  .eq('id', searchId);
+              }
+            } catch (dbErr: any) {
+              console.error('[MapsScraper] Exceção ao salvar lead no Supabase:', dbErr.message);
+            }
+          }
           
           this.emit('item-scraped', this.userId, { item: result, current: validCount, total: maxItems });
           this.emit('log', this.userId, `[Extraído ${validCount}/${maxItems}] ${result.title} (${result.phone})`);

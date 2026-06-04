@@ -130,16 +130,16 @@ export default function AdminDashboard() {
             console.warn('Campaigns table not accessible:', e);
           }
 
-          // Count leads extracted from map_searches (handle if table doesn't exist)
+          // Count leads extracted from maps_searches (handle if table doesn't exist)
           try {
             const { data: searches } = await supabase
-              .from('map_searches')
-              .select('total_results')
+              .from('maps_searches')
+              .select('leads_found')
               .eq('user_id', profile.id);
 
-            totalLeads = searches?.reduce((sum: number, s: any) => sum + (s.total_results || 0), 0) || 0;
+            totalLeads = searches?.reduce((sum: number, s: any) => sum + (s.leads_found || 0), 0) || 0;
           } catch (e) {
-            console.warn('Map searches table not accessible:', e);
+            console.warn('Maps searches table not accessible:', e);
           }
 
           return {

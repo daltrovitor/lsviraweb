@@ -117,13 +117,9 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
         setProgress({ current: 0, total: 0 });
       }
       
-      // Auto-save search to Supabase upon completion
+      // Refresh history from Supabase upon completion since it was saved in real-time
       if (newStatus === 'completed') {
-        // Encontra os resultados finais na hora de salvar
-        setResults(prev => {
-          saveSearchToSupabase(query, limit, prev);
-          return prev;
-        });
+        fetchHistory();
       }
     });
 

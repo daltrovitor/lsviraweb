@@ -90,70 +90,7 @@ export function MapsModule() {
   };
 
   const saveToSupabase = async () => {
-    if (results.length === 0) return alert('Nenhum lead');
-    if (!supabase) return alert('Supabase não configurado');
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return alert('Não autenticado');
-
-    setSaving(true);
-    try {
-      const { data: search, error: searchErr } = await supabase
-        .from('map_searches')
-        .insert({
-          user_id: user.id,
-          query,
-          total_results: results.length,
-        })
-        .select('id')
-        .single();
-
-      if (searchErr) {
-        const fallback = await supabase
-          .from('scraped_searches')
-          .insert({
-            user_id: user.id,
-            query,
-            target_limit: limit,
-            found_count: results.length,
-            filters,
-          })
-          .select('id')
-          .single();
-        if (fallback.error) throw fallback.error;
-
-        const leads = results.map((r) => ({
-          search_id: fallback.data!.id,
-          title: r.title,
-          address: r.address,
-          phone: r.phone,
-          website: r.website,
-          rating: r.rating,
-          category: r.category,
-          url: r.url,
-        }));
-        const { error: leadsErr } = await supabase.from('scraped_leads').insert(leads);
-        if (leadsErr) throw leadsErr;
-      } else {
-        const leads = results.map((r) => ({
-          search_id: search!.id,
-          title: r.title,
-          address: r.address,
-          phone: r.phone,
-          website: r.website,
-          rating: r.rating,
-          category: r.category,
-          url: r.url,
-        }));
-        const { error: leadsErr } = await supabase.from('scraped_leads').insert(leads);
-        if (leadsErr) throw leadsErr;
-      }
-
-      alert('Leads salvos com sucesso!');
-    } catch (err: unknown) {
-      alert(`Erro: ${err instanceof Error ? err.message : 'Falha ao salvar'}`);
-    } finally {
-      setSaving(false);
-    }
+    alert('Sua busca e todos os leads já são salvos automaticamente no histórico em tempo real enquanto a extração está rodando!');
   };
 
   const exportCSV = () => {

@@ -30,32 +30,34 @@ CREATE POLICY "Users can insert own profile"
   WITH CHECK (auth.uid() = id);
 
 -- ==========================================
--- 2. Tabela de Buscas no Maps (map_searches)
+-- 2. Tabela de Buscas no Maps (maps_searches)
 -- ==========================================
-CREATE TABLE IF NOT EXISTS public.map_searches (
+CREATE TABLE IF NOT EXISTS public.maps_searches (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   query TEXT NOT NULL,
-  total_results INTEGER DEFAULT 0,
+  target_limit INTEGER DEFAULT 0,
+  leads_found INTEGER DEFAULT 0,
+  specifications JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
-ALTER TABLE public.map_searches ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.maps_searches ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view own map searches" 
-  ON public.map_searches FOR SELECT 
+CREATE POLICY "Users can view own maps searches" 
+  ON public.maps_searches FOR SELECT 
   USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can insert own map searches" 
-  ON public.map_searches FOR INSERT 
+CREATE POLICY "Users can insert own maps searches" 
+  ON public.maps_searches FOR INSERT 
   WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can update own map searches" 
-  ON public.map_searches FOR UPDATE 
+CREATE POLICY "Users can update own maps searches" 
+  ON public.maps_searches FOR UPDATE 
   USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can delete own map searches" 
-  ON public.map_searches FOR DELETE 
+CREATE POLICY "Users can delete own maps searches" 
+  ON public.maps_searches FOR DELETE 
   USING (auth.uid() = user_id);
 
 -- ==========================================
@@ -63,7 +65,8 @@ CREATE POLICY "Users can delete own map searches"
 -- ==========================================
 CREATE TABLE IF NOT EXISTS public.scraped_leads (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  search_id UUID NOT NULL REFERENCES public.map_searches(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  search_id UUID NOT NULL REFERENCES public.maps_searches(id) ON DELETE CASCADE,
   title TEXT,
   address TEXT,
   phone TEXT,
@@ -80,7 +83,7 @@ CREATE POLICY "Users can view own scraped leads"
   ON public.scraped_leads FOR SELECT 
   USING (
     search_id IN (
-      SELECT id FROM public.map_searches WHERE user_id = auth.uid()
+      SELECT id FROM public.maps_searches WHERE user_id = auth.uid()
     )
   );
 
@@ -88,7 +91,7 @@ CREATE POLICY "Users can insert own scraped leads"
   ON public.scraped_leads FOR INSERT 
   WITH CHECK (
     search_id IN (
-      SELECT id FROM public.map_searches WHERE user_id = auth.uid()
+      SELECT id FROM public.maps_searches WHERE user_id = auth.uid()
     )
   );
 
@@ -96,7 +99,7 @@ CREATE POLICY "Users can update own scraped leads"
   ON public.scraped_leads FOR UPDATE 
   USING (
     search_id IN (
-      SELECT id FROM public.map_searches WHERE user_id = auth.uid()
+      SELECT id FROM public.maps_searches WHERE user_id = auth.uid()
     )
   );
 
@@ -104,7 +107,7 @@ CREATE POLICY "Users can delete own scraped leads"
   ON public.scraped_leads FOR DELETE 
   USING (
     search_id IN (
-      SELECT id FROM public.map_searches WHERE user_id = auth.uid()
+      SELECT id FROM public.maps_searches WHERE user_id = auth.uid()
     )
   );
 

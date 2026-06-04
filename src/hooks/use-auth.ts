@@ -27,8 +27,6 @@ export function useAuth() {
       setSession(data.session);
       setUser(data.session?.user ?? null);
       
-      console.log('[use-auth] refresh - session:', !!data.session, 'user:', !!data.session?.user);
-      
       // Check if user is approved
       if (data.session?.user) {
         const { data: profile, error } = await withTimeout(
@@ -40,7 +38,6 @@ export function useAuth() {
           10000
         );
         
-        console.log('[use-auth] refresh - profile:', profile, 'error:', error);
         setIsApproved(profile?.status === 'active');
       } else {
         setIsApproved(false);
@@ -58,7 +55,6 @@ export function useAuth() {
     if (!supabase) return;
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      console.log('[use-auth] onAuthStateChange - event:', _event, 'session:', !!newSession);
       try {
         setSession(newSession);
         setUser(newSession?.user ?? null);
@@ -74,7 +70,6 @@ export function useAuth() {
             10000
           );
           
-          console.log('[use-auth] onAuthStateChange - profile:', profile, 'error:', error);
           setIsApproved(profile?.status === 'active');
         } else {
           setIsApproved(false);
