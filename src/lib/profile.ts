@@ -27,19 +27,33 @@ function profileFromUser(user: User): UserProfile {
 export async function fetchUserProfile(user: User): Promise<UserProfile> {
   if (!supabase) return profileFromUser(user);
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .select(PROFILE_COLUMNS)
-    .eq('id', user.id)
-    .maybeSingle();
+  const timeoutPromise = new Promise<null>((_, reject) =>
+    setTimeout(() => reject(new Error('Profile fetch timeout')), 4000)
+  );
 
-  if (error) {
-    console.warn('[profiles] fetch failed:', error.message);
-    return profileFromUser(user);
+  const queryPromise = (async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select(PROFILE_COLUMNS)
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('[profiles] fetch failed:', error.message);
+      return null;
+    }
+    return data;
+  })();
+
+  let data = null;
+  try {
+    data = await Promise.race([queryPromise, timeoutPromise]);
+  } catch (err) {
+    console.error('[profiles] fetch timed out or failed:', err);
   }
 
   if (data) {
-    return { ...data, email: user.email ?? undefined };
+    return { ...data, email: user.email ?? undefined } as UserProfile;
   }
 
   // Row missing (e.g. user created before trigger) — create if policy allows
@@ -50,14 +64,29 @@ export async function fetchUserProfile(user: User): Promise<UserProfile> {
     status: 'pending',
   };
 
-  const { data: created, error: insertError } = await supabase
-    .from('profiles')
-    .insert(insertPayload)
-    .select(PROFILE_COLUMNS)
-    .maybeSingle();
+  const insertQueryPromise = (async () => {
+    const { data: created, error: insertError } = await supabase
+      .from('profiles')
+      .insert(insertPayload)
+      .select(PROFILE_COLUMNS)
+      .maybeSingle();
 
-  if (!insertError && created) {
-    return { ...created, email: user.email ?? undefined };
+    if (insertError) {
+      console.warn('[profiles] insert failed:', insertError.message);
+      return null;
+    }
+    return created;
+  })();
+
+  let created = null;
+  try {
+    created = await Promise.race([insertQueryPromise, timeoutPromise]);
+  } catch (err) {
+    console.error('[profiles] insert timed out or failed:', err);
+  }
+
+  if (created) {
+    return { ...created, email: user.email ?? undefined } as UserProfile;
   }
 
   return profileFromUser(user);

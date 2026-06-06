@@ -3,6 +3,14 @@ import { whatsappManager } from './whatsapp';
 import { EventEmitter } from 'events';
 import { supabase } from '../utils/supabase';
 
+// Helper function to parse user scheduled time forcing Brazil timezone America/Sao_Paulo (UTC-3)
+function parseScheduledTime(scheduledAt: string): Date {
+  if (scheduledAt.includes('Z') || /[-+]\d{2}:\d{2}$/.test(scheduledAt)) {
+    return new Date(scheduledAt);
+  }
+  return new Date(`${scheduledAt}-03:00`);
+}
+
 export class CampaignService extends EventEmitter {
   private campaign: Campaign | null = null;
   private isPaused: boolean = false;
@@ -36,14 +44,47 @@ export class CampaignService extends EventEmitter {
     return this.sentTimestamps.filter(t => now - t < 24 * 60 * 60 * 1000).length;
   }
 
+  // Get current time details specifically in America/Sao_Paulo timezone
+  private getLocalTime(): { hour: number; minute: number; day: number } {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Sao_Paulo',
+      hour: 'numeric',
+      minute: 'numeric',
+      weekday: 'short',
+      hour12: false
+    });
+
+    const parts = formatter.formatToParts(new Date());
+    let hour = 0;
+    let minute = 0;
+    let weekday = 'Sun';
+
+    for (const part of parts) {
+      if (part.type === 'hour') hour = parseInt(part.value, 10);
+      if (part.type === 'minute') minute = parseInt(part.value, 10);
+      if (part.type === 'weekday') weekday = part.value;
+    }
+
+    const dayShortToNum: Record<string, number> = {
+      'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6
+    };
+
+    return {
+      hour,
+      minute,
+      day: dayShortToNum[weekday] ?? new Date().getDay()
+    };
+  }
+
   private checkDay(allowedDays: string[]): boolean {
     const dayMap: Record<number, string> = { 0: 'Dom', 1: 'Seg', 2: 'Ter', 3: 'Qua', 4: 'Qui', 5: 'Sex', 6: 'Sab' };
-    return allowedDays.includes(dayMap[new Date().getDay()]);
+    const local = this.getLocalTime();
+    return allowedDays.includes(dayMap[local.day]);
   }
 
   private checkHour(start: string, end: string): boolean {
-    const now = new Date();
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const local = this.getLocalTime();
+    const currentMinutes = local.hour * 60 + local.minute;
     const [startH, startM] = start.split(':').map(Number);
     const [endH, endM] = end.split(':').map(Number);
     const startMinutes = startH * 60 + startM;
@@ -81,7 +122,7 @@ export class CampaignService extends EventEmitter {
         status: this.campaign.status,
         stats: this.campaign.stats,
         automation: this.campaign.automation || {},
-        scheduled_at: this.campaign.scheduledAt || null
+        scheduled_at: this.campaign.scheduledAt ? parseScheduledTime(this.campaign.scheduledAt).toISOString() : null
       });
     } catch (err: any) {
       console.error('Erro de persistência no Supabase:', err.message);
@@ -101,12 +142,12 @@ export class CampaignService extends EventEmitter {
     this.isStopped = false;
 
     if (campaign.scheduledAt) {
-      const scheduledTime = new Date(campaign.scheduledAt).getTime();
+      const scheduledTime = parseScheduledTime(campaign.scheduledAt).getTime();
       const delay = scheduledTime - Date.now();
       if (delay > 0) {
         this.campaign.status = 'scheduled';
         this.emit('update', this.userId, this.campaign);
-        this.emit('log', this.userId, `⏰ Campanha agendada para começar em: ${new Date(scheduledTime).toLocaleString('pt-BR')}`);
+        this.emit('log', this.userId, `⏰ Campanha agendada para começar em: ${new Date(scheduledTime).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`);
         await this.saveCampaignToDb();
 
         await new Promise<void>((resolve) => {
