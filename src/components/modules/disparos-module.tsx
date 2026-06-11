@@ -24,6 +24,21 @@ export function DisparosModule() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    try {
+      const stored = localStorage.getItem('pending_disparos_contacts');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setContacts(parsed);
+        }
+        localStorage.removeItem('pending_disparos_contacts');
+      }
+    } catch (err) {
+      console.error('Error loading pending contacts:', err);
+    }
+  }, []);
+
+  useEffect(() => {
     const onStatus = (s: WhatsAppStatus) => setWaStatus(s);
     const onCamp = (c: Campaign) => setCampaign(c);
     const onLog = (log: { message: string; timestamp: Date }) =>

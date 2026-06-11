@@ -24,13 +24,19 @@ export function loadAutomationFromStorage(): AutomationSettings {
   if (typeof window === 'undefined') return DEFAULT_AUTOMATION;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_AUTOMATION;
-    return { ...DEFAULT_AUTOMATION, ...JSON.parse(raw) };
+    const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (!raw) return { ...DEFAULT_AUTOMATION, timezone: localTz };
+    return { ...DEFAULT_AUTOMATION, timezone: localTz, ...JSON.parse(raw) };
   } catch {
     return DEFAULT_AUTOMATION;
   }
 }
 
 export function saveAutomationToStorage(settings: AutomationSettings): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  const localTz = typeof window !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : undefined;
+  const settingsWithTz = {
+    ...settings,
+    timezone: localTz || settings.timezone
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(settingsWithTz));
 }

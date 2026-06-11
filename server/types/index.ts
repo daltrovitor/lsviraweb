@@ -51,6 +51,7 @@ export interface AutomationSettings {
   pauseDurationMax: number;
   fatigue: number;
   randomVariation: number;
+  timezone?: string;
 }
 
 export interface Campaign {

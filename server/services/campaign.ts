@@ -32,14 +32,44 @@ export class CampaignService extends EventEmitter {
     return this.sentTimestamps.filter(t => now - t < 24 * 60 * 60 * 1000).length;
   }
 
-  private checkDay(allowedDays: string[]): boolean {
-    const dayMap: Record<number, string> = { 0: 'Dom', 1: 'Seg', 2: 'Ter', 3: 'Qua', 4: 'Qui', 5: 'Sex', 6: 'Sab' };
-    return allowedDays.includes(dayMap[new Date().getDay()]);
+  private getLocalDateParts(timeZone: string = 'America/Sao_Paulo'): { hour: number; minute: number; dayOfWeek: number } {
+    try {
+      const date = new Date();
+      
+      const weekdayFormatter = new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'short' });
+      const weekdayStr = weekdayFormatter.format(date);
+      
+      const timeFormatter = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: false
+      });
+      const parts = timeFormatter.formatToParts(date);
+      const hour = Number(parts.find(p => p.type === 'hour')?.value ?? date.getHours());
+      const minute = Number(parts.find(p => p.type === 'minute')?.value ?? date.getMinutes());
+      
+      const dayMap: Record<string, number> = {
+        'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6
+      };
+      const dayOfWeek = dayMap[weekdayStr] ?? date.getDay();
+      
+      return { hour, minute, dayOfWeek };
+    } catch (err) {
+      const date = new Date();
+      return { hour: date.getHours(), minute: date.getMinutes(), dayOfWeek: date.getDay() };
+    }
   }
 
-  private checkHour(start: string, end: string): boolean {
-    const now = new Date();
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  private checkDay(allowedDays: string[], timezone?: string): boolean {
+    const { dayOfWeek } = this.getLocalDateParts(timezone);
+    const dayMap: Record<number, string> = { 0: 'Dom', 1: 'Seg', 2: 'Ter', 3: 'Qua', 4: 'Qui', 5: 'Sex', 6: 'Sab' };
+    return allowedDays.includes(dayMap[dayOfWeek]);
+  }
+
+  private checkHour(start: string, end: string, timezone?: string): boolean {
+    const { hour, minute } = this.getLocalDateParts(timezone);
+    const currentMinutes = hour * 60 + minute;
     const [startH, startM] = start.split(':').map(Number);
     const [endH, endM] = end.split(':').map(Number);
     const startMinutes = startH * 60 + startM;
@@ -153,12 +183,12 @@ export class CampaignService extends EventEmitter {
         this.cleanTimestamps();
         const automation = this.campaign.automation;
         if (automation) {
-          if (automation.diasAtivos?.length > 0 && !this.checkDay(automation.diasAtivos)) {
+          if (automation.diasAtivos?.length > 0 && !this.checkDay(automation.diasAtivos, automation.timezone)) {
             this.emit('log', this.userId, `📅 Fora do dia permitido. Aguardando...`);
             if (!await this.sleepSafely(30000)) break;
             continue;
           }
-          if (automation.startTime && automation.endTime && !this.checkHour(automation.startTime, automation.endTime)) {
+          if (automation.startTime && automation.endTime && !this.checkHour(automation.startTime, automation.endTime, automation.timezone)) {
             this.emit('log', this.userId, `⏰ Fora do horário permitido. Aguardando...`);
             if (!await this.sleepSafely(30000)) break;
             continue;
