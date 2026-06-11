@@ -48,6 +48,12 @@ interface ScraperJob {
   only_cellphones: boolean;
   exclude_fixed_phones: boolean;
   only_with_instagram_or_whatsapp: boolean;
+<<<<<<< HEAD
+=======
+  only_with_website?: boolean;
+  min_rating?: number;
+  min_reviews?: number;
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
   status: string;
   current_count: number;
   total_count: number;
@@ -157,6 +163,12 @@ async function processJob(job: ScraperJob) {
       onlyCellphones: job.only_cellphones,
       excludeFixedPhones: job.exclude_fixed_phones,
       onlyWithInstagramOrWhatsapp: job.only_with_instagram_or_whatsapp,
+<<<<<<< HEAD
+=======
+      onlyWithWebsite: job.only_with_website ?? false,
+      minRating: job.min_rating ?? 0,
+      minReviews: job.min_reviews ?? 0,
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
     });
     
     console.log(`[JOB] Job ${job.id} completado com sucesso`);

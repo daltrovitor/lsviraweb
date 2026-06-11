@@ -24,6 +24,17 @@ console.warn = function (...args) {
   originalConsoleWarn.apply(console, args);
 };
 
+<<<<<<< HEAD
+=======
+// Force stdout and stderr to be blocking (unbuffered) so logs are written immediately to files/terminal
+if ((process.stdout as any)._handle && typeof (process.stdout as any)._handle.setBlocking === 'function') {
+  (process.stdout as any)._handle.setBlocking(true);
+}
+if ((process.stderr as any)._handle && typeof (process.stderr as any)._handle.setBlocking === 'function') {
+  (process.stderr as any)._handle.setBlocking(true);
+}
+
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
 import dotenv from 'dotenv';
 import next from 'next';
 import { createServer } from 'http';

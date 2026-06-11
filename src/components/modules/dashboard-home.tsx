@@ -56,8 +56,13 @@ export function DashboardHomeModule() {
 
       const { data: leads } = await supabase
         .from('scraped_leads')
+<<<<<<< HEAD
         .select('id, search_id!inner(user_id)')
         .eq('search_id.user_id', user.id);
+=======
+        .select('id, scraped_searches!inner(user_id)')
+        .eq('scraped_searches.user_id', user.id);
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
 
       const { data: campaigns } = await supabase
         .from('campaigns')
@@ -98,7 +103,12 @@ export function DashboardHomeModule() {
     fetchStats();
 
     const onStatus = (s: WhatsAppStatus) => setWaStatus(s);
+<<<<<<< HEAD
     const onCampaign = (camp: Campaign) => {
+=======
+    const onCampaign = (camp: Campaign | null | undefined) => {
+      if (!camp) return;
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
       setActiveCampaign(camp);
       const totalSent = dbStatsRef.current.sent + (camp?.stats?.sent || 0);
       const totalError = dbStatsRef.current.error + (camp?.stats?.error || 0);
@@ -108,13 +118,23 @@ export function DashboardHomeModule() {
         sent: totalSent,
         successRate: totalAttempts > 0 ? parseFloat(((totalSent / totalAttempts) * 100).toFixed(1)) : 100,
         speed:
+<<<<<<< HEAD
           camp.status === 'running' ? Math.round(60 / ((camp.delayMin + camp.delayMax) / 2)) : 0,
+=======
+          camp?.status === 'running' && camp?.delayMin !== undefined && camp?.delayMax !== undefined
+            ? Math.round(60 / ((camp.delayMin + camp.delayMax) / 2))
+            : 0,
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
       }));
     };
 
     socket.on('whatsapp-status', onStatus);
     socket.on('campaign-update', onCampaign);
     socket.emit('get-whatsapp-status');
+<<<<<<< HEAD
+=======
+    socket.emit('get-campaign-status');
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
 
     return () => {
       socket.off('whatsapp-status', onStatus);
@@ -308,25 +328,42 @@ export function DashboardHomeModule() {
                         Campanha ativa
                       </Badge>
                       <p className="font-bold text-white mt-2 text-sm line-clamp-2">
+<<<<<<< HEAD
                         {activeCampaign.message.slice(0, 80)}…
                       </p>
                     </div>
                     <Badge variant="live">{activeCampaign.status}</Badge>
+=======
+                        {activeCampaign?.message?.slice(0, 80) || ''}…
+                      </p>
+                    </div>
+                    <Badge variant="live">{activeCampaign?.status}</Badge>
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
                   </div>
                   <div className="flex justify-between text-xs font-bold text-slate-400 mb-2">
                     <span>Progresso</span>
                     <span>
+<<<<<<< HEAD
                       {activeCampaign.stats.sent} / {activeCampaign.stats.total}
                     </span>
                   </div>
                   <ProgressBar
                     value={activeCampaign.stats.sent}
                     max={activeCampaign.stats.total}
+=======
+                      {activeCampaign?.stats?.sent || 0} / {activeCampaign?.stats?.total || 0}
+                    </span>
+                  </div>
+                  <ProgressBar
+                    value={activeCampaign?.stats?.sent || 0}
+                    max={activeCampaign?.stats?.total || 0}
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
                     className="mb-4 bg-white/10"
                   />
                   <div className="flex flex-wrap items-center gap-4">
                     <div>
                       <span className="text-[10px] text-slate-400 uppercase font-bold">Sucesso </span>
+<<<<<<< HEAD
                       <span className="text-lg font-black text-emerald-400">{activeCampaign.stats.sent}</span>
                     </div>
                     <div>
@@ -335,6 +372,16 @@ export function DashboardHomeModule() {
                     </div>
                     <div className="flex gap-2 ml-auto">
                       {activeCampaign.status === 'running' ? (
+=======
+                      <span className="text-lg font-black text-emerald-400">{activeCampaign?.stats?.sent || 0}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold">Falhas </span>
+                      <span className="text-lg font-black text-red-400">{activeCampaign?.stats?.error || 0}</span>
+                    </div>
+                    <div className="flex gap-2 ml-auto">
+                      {activeCampaign?.status === 'running' ? (
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
                         <button
                           onClick={() => socket.emit('pause-campaign')}
                           className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white"

@@ -52,8 +52,13 @@ export default function DashboardHome() {
       // Buscar leads extraídos
       const { data: leads } = await supabase
         .from('scraped_leads')
+<<<<<<< HEAD
         .select('id, search_id!inner(user_id)')
         .eq('search_id.user_id', user.id);
+=======
+        .select('id, scraped_searches!inner(user_id)')
+        .eq('scraped_searches.user_id', user.id);
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
       const totalExtracted = leads?.length || 0;
 
       // Buscar campanhas do usuário para calcular histórico de disparos
@@ -126,6 +131,10 @@ export default function DashboardHome() {
     
     // Solicitar status inicial
     socket.emit('get-whatsapp-status');
+<<<<<<< HEAD
+=======
+    socket.emit('get-campaign-status');
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
 
     return () => {
       socket.off('whatsapp-status', onStatus);

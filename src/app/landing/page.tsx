@@ -1,6 +1,12 @@
 'use client';
 
+<<<<<<< HEAD
 import { useState } from 'react';
+=======
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/use-auth';
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
 import { toast } from 'sonner';
 import { 
   ArrowRight, Sparkles, Zap, Shield, TrendingUp, TrendingDown, CheckCircle2, 
@@ -12,13 +18,29 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 export default function LandingPage() {
+<<<<<<< HEAD
+=======
+  const router = useRouter();
+  const { user, loading, isApproved } = useAuth();
+
+  useEffect(() => {
+    if (!loading && user && isApproved) {
+      router.replace('/dashboard');
+    }
+  }, [user, loading, isApproved, router]);
+
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     whatsapp: '',
     password: ''
   });
+<<<<<<< HEAD
   const [loading, setLoading] = useState(false);
+=======
+  const [isSubmitting, setIsSubmitting] = useState(false);
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,7 +51,11 @@ export default function LandingPage() {
       return;
     }
 
+<<<<<<< HEAD
     setLoading(true);
+=======
+    setIsSubmitting(true);
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
     try {
       const response = await fetch('/api/landing/submit-lead', {
         method: 'POST',
@@ -50,7 +76,11 @@ export default function LandingPage() {
     } catch (error) {
       toast.error('Erro ao conectar ao servidor');
     } finally {
+<<<<<<< HEAD
       setLoading(false);
+=======
+      setIsSubmitting(false);
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
     }
   };
 
@@ -527,10 +557,17 @@ export default function LandingPage() {
                 </div>
                 <button
                   type="submit"
+<<<<<<< HEAD
                   disabled={loading}
                   className="w-full py-4 bg-gradient-to-r from-v-blue-500 to-v-blue-600 hover:from-v-blue-600 hover:to-v-blue-700 text-white font-black text-lg rounded-xl flex items-center justify-center gap-3 shadow-xl shadow-v-blue-500/30 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
+=======
+                  disabled={isSubmitting}
+                  className="w-full py-4 bg-gradient-to-r from-v-blue-500 to-v-blue-600 hover:from-v-blue-600 hover:to-v-blue-700 text-white font-black text-lg rounded-xl flex items-center justify-center gap-3 shadow-xl shadow-v-blue-500/30 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
                     <>
                       <Loader2 size={20} className="animate-spin" />
                       Processando...

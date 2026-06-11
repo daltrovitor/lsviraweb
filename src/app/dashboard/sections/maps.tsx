@@ -24,8 +24,15 @@ export default function MapsSection() {
   const [limit, setLimit] = useState(50);
   const [filters, setFilters] = useState({
     onlyCellphones: true,
+<<<<<<< HEAD
     excludeFixedPhones: true,
     onlyWithInstagramOrWhatsapp: false
+=======
+    onlyWithInstagramOrWhatsapp: false,
+    onlyWithWebsite: false,
+    minRating: 0,
+    minReviews: 0
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
   });
   
   const [status, setStatus] = useState<'idle' | 'starting' | 'extracting' | 'completed' | 'error' | 'stopped'>('idle');
@@ -39,19 +46,42 @@ export default function MapsSection() {
       setResults(prev => [...prev, data.item]);
     };
 
+<<<<<<< HEAD
     socket.on('maps-status', onStatus);
     socket.on('maps-log', onLog);
     socket.on('maps-item-scraped', onItem);
+=======
+    const onError = (err: any) => {
+      console.error('[Socket Error]', err);
+      const errMsg = typeof err === 'string' ? err : err.message || JSON.stringify(err);
+      setLogs(prev => [...prev, { msg: `Erro de conexão/servidor: ${errMsg}`, time: new Date() }].slice(-50));
+    };
+
+    socket.on('maps-status', onStatus);
+    socket.on('maps-log', onLog);
+    socket.on('maps-item-scraped', onItem);
+    socket.on('error', onError);
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
 
     return () => {
       socket.off('maps-status', onStatus);
       socket.off('maps-log', onLog);
       socket.off('maps-item-scraped', onItem);
+<<<<<<< HEAD
+=======
+      socket.off('error', onError);
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
     };
   }, []);
 
   const toggleFilter = (key: keyof typeof filters) => {
+<<<<<<< HEAD
     setFilters(prev => ({ ...prev, [key]: !prev[key] }));
+=======
+    if (typeof filters[key] === 'boolean') {
+      setFilters(prev => ({ ...prev, [key]: !prev[key] }));
+    }
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
   };
 
   const startScrape = () => {
@@ -61,7 +91,16 @@ export default function MapsSection() {
     socket.emit('start-maps-scrape', {
       query,
       limit,
+<<<<<<< HEAD
       ...filters
+=======
+      onlyCellphones: filters.onlyCellphones,
+      excludeFixedPhones: filters.onlyCellphones,
+      onlyWithInstagramOrWhatsapp: filters.onlyWithInstagramOrWhatsapp,
+      onlyWithWebsite: filters.onlyWithWebsite,
+      minRating: filters.minRating,
+      minReviews: filters.minReviews
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
     });
   };
 
@@ -70,6 +109,7 @@ export default function MapsSection() {
   };
 
   const saveToSupabase = async () => {
+<<<<<<< HEAD
     if (results.length === 0) return alert('Nenhum lead para salvar');
     if (!supabase) return alert('Supabase não configurado');
     const { data: { user } } = await supabase.auth.getUser();
@@ -113,6 +153,9 @@ export default function MapsSection() {
     } catch (err: any) {
       alert(`Erro ao salvar: ${err.message}`);
     }
+=======
+    alert('Sua busca e todos os leads já são salvos automaticamente no histórico em tempo real enquanto a extração está rodando!');
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
   };
 
   const exportCSV = () => {
@@ -189,6 +232,7 @@ export default function MapsSection() {
                 <div className="space-y-2">
                   <button onClick={() => toggleFilter('onlyCellphones')} className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors text-left">
                     {filters.onlyCellphones ? <CheckSquare className="text-navy-900" size={18} /> : <Square className="text-slate-300" size={18} />}
+<<<<<<< HEAD
                     <span className="text-sm font-semibold text-slate-700">Apenas Celulares (Ignora telefones sem 9)</span>
                   </button>
                   <button onClick={() => toggleFilter('excludeFixedPhones')} className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors text-left">
@@ -199,6 +243,48 @@ export default function MapsSection() {
                     {filters.onlyWithInstagramOrWhatsapp ? <CheckSquare className="text-navy-900" size={18} /> : <Square className="text-slate-300" size={18} />}
                     <span className="text-sm font-semibold text-slate-700">Apenas com Instagram ou Link WA.me</span>
                   </button>
+=======
+                    <span className="text-sm font-semibold text-slate-700">Apenas Celulares / WhatsApp</span>
+                  </button>
+                  <button onClick={() => toggleFilter('onlyWithInstagramOrWhatsapp')} className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors text-left">
+                    {filters.onlyWithInstagramOrWhatsapp ? <CheckSquare className="text-navy-900" size={18} /> : <Square className="text-slate-300" size={18} />}
+                    <span className="text-sm font-semibold text-slate-700">Com Instagram ou WA.me</span>
+                  </button>
+                  <button onClick={() => toggleFilter('onlyWithWebsite')} className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors text-left">
+                    {filters.onlyWithWebsite ? <CheckSquare className="text-navy-900" size={18} /> : <Square className="text-slate-300" size={18} />}
+                    <span className="text-sm font-semibold text-slate-700">Apenas com Website</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 block mb-1">Nota Mínima</label>
+                    <select
+                      value={filters.minRating}
+                      onChange={(e) => setFilters(prev => ({ ...prev, minRating: Number(e.target.value) }))}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-navy-900 transition-colors text-slate-700 font-semibold"
+                    >
+                      <option value={0}>Sem filtro</option>
+                      <option value={4.0}>★ ≥ 4.0</option>
+                      <option value={4.5}>★ ≥ 4.5</option>
+                      <option value={4.8}>★ ≥ 4.8</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 block mb-1">Mínimo Avaliações</label>
+                    <select
+                      value={filters.minReviews}
+                      onChange={(e) => setFilters(prev => ({ ...prev, minReviews: Number(e.target.value) }))}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-navy-900 transition-colors text-slate-700 font-semibold"
+                    >
+                      <option value={0}>Sem filtro</option>
+                      <option value={10}>≥ 10 avaliações</option>
+                      <option value={50}>≥ 50 avaliações</option>
+                      <option value={100}>≥ 100 avaliações</option>
+                    </select>
+                  </div>
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
                 </div>
               </div>
 

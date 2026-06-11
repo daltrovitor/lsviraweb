@@ -13,7 +13,11 @@ import { Badge } from '@/components/ui/badge';
 
 export function LoginForm({ redirectTo = '/dashboard', disableAutoRedirect = false }: { redirectTo?: string; disableAutoRedirect?: boolean }) {
   const router = useRouter();
+<<<<<<< HEAD
   const { user, loading: authLoading, isApproved } = useAuth();
+=======
+  const { user, loading: authLoading, isApproved, signOut } = useAuth();
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
   const [isLogin, setIsLogin] = useState(true);
 
   useEffect(() => {
@@ -130,8 +134,23 @@ export function LoginForm({ redirectTo = '/dashboard', disableAutoRedirect = fal
           )}
 
           {user && !isApproved && (
+<<<<<<< HEAD
             <div className="mb-4 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-medium">
               ⏳ Sua conta está pendente de aprovação pelo administrador. Aguarde o contato.
+=======
+            <div className="mb-4 p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-medium flex flex-col gap-2">
+              <span>⏳ Sua conta está pendente de aprovação pelo administrador. Aguarde o contato.</span>
+              <button 
+                type="button" 
+                onClick={async () => {
+                  await signOut();
+                  router.refresh();
+                }} 
+                className="text-left text-v-blue-600 font-bold hover:text-gold-500 transition-colors text-xs underline mt-1"
+              >
+                Sair / Entrar com outra conta
+              </button>
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
             </div>
           )}
 

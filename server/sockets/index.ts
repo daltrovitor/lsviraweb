@@ -13,9 +13,36 @@ export const setupSockets = (io: Server) => {
     socket.on('register', (userId: string) => {
       console.log(`Socket ${socket.id} registrado para usuário: ${userId}`);
       currentUserId = userId;
+<<<<<<< HEAD
       // Enviar status atual ao conectar
       const waService = whatsappManager.getService(userId);
       socket.emit('whatsapp-status', waService.getStatus());
+=======
+      
+      // Enviar status atual ao conectar
+      const waService = whatsappManager.getService(userId);
+      socket.emit('whatsapp-status', waService.getStatus());
+
+      // Enviar status do Maps Scraper ao conectar (para restabelecer estado se o usuário recarregar)
+      const scraper = mapsScraperManager.getService(userId);
+      const scraperStatus = scraper.getStatus();
+      socket.emit('maps-status', scraperStatus.status);
+      
+      if (scraperStatus.status === 'extracting' || scraperStatus.status === 'starting') {
+        socket.emit('maps-item-scraped', {
+          item: null,
+          current: scraperStatus.current,
+          total: scraperStatus.total
+        });
+      }
+
+      // Enviar status da campanha ativa ao conectar
+      const campaignService = campaignManager.getService(userId);
+      const activeCampaign = campaignService.getCampaign();
+      if (activeCampaign) {
+        socket.emit('campaign-update', activeCampaign);
+      }
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
     });
 
     socket.on('get-whatsapp-status', () => {
@@ -25,6 +52,35 @@ export const setupSockets = (io: Server) => {
       }
     });
 
+<<<<<<< HEAD
+=======
+    socket.on('get-maps-status', () => {
+      if (currentUserId) {
+        const scraper = mapsScraperManager.getService(currentUserId);
+        const scraperStatus = scraper.getStatus();
+        socket.emit('maps-status', scraperStatus.status);
+        
+        if (scraperStatus.status === 'extracting' || scraperStatus.status === 'starting') {
+          socket.emit('maps-item-scraped', {
+            item: null,
+            current: scraperStatus.current,
+            total: scraperStatus.total
+          });
+        }
+      }
+    });
+
+    socket.on('get-campaign-status', () => {
+      if (currentUserId) {
+        const campaignService = campaignManager.getService(currentUserId);
+        const activeCampaign = campaignService.getCampaign();
+        if (activeCampaign) {
+          socket.emit('campaign-update', activeCampaign);
+        }
+      }
+    });
+
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
     // Handlers
     const onWhatsappStatus = (uid: string, status: any) => {
       if (uid === currentUserId) socket.emit('whatsapp-status', status);
@@ -109,7 +165,11 @@ export const setupSockets = (io: Server) => {
       await whatsappManager.getService(currentUserId).logout();
     });
 
+<<<<<<< HEAD
     socket.on('start-maps-scrape', async ({ query, limit, onlyCellphones, excludeFixedPhones, onlyWithInstagramOrWhatsapp }) => {
+=======
+    socket.on('start-maps-scrape', async ({ query, limit, onlyCellphones, excludeFixedPhones, onlyWithInstagramOrWhatsapp, onlyWithWebsite, minRating, minReviews }) => {
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
       if (!currentUserId) return socket.emit('error', 'Não registrado');
       console.log(`[Maps Scrape] ✓ Iniciando para usuário ${currentUserId}: "${query}" (limite: ${limit})`);
       try {
@@ -120,7 +180,14 @@ export const setupSockets = (io: Server) => {
           limit,
           onlyCellphones,
           excludeFixedPhones,
+<<<<<<< HEAD
           onlyWithInstagramOrWhatsapp
+=======
+          onlyWithInstagramOrWhatsapp,
+          onlyWithWebsite,
+          minRating,
+          minReviews
+>>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
         });
         console.log(`[Maps Scrape] ✓ Scrape completado para ${currentUserId}`);
       } catch (err: any) {
