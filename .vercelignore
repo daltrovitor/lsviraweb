@@ -9,3 +9,4 @@ background-server/
 *.log
 .env.local
 sessions/
+scripts/

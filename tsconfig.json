@@ -31,6 +31,7 @@
     "src/socket/**/*",
     "src/services/whatsapp.ts",
     "src/services/mapsScraper.ts",
-    "src/app/api/whatsapp/**/*"
+    "src/app/api/whatsapp/**/*",
+    "scripts/**/*"
   ]
 }
