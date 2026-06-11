@@ -4,8 +4,6 @@ import { useEffect, useState, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 
-<<<<<<< HEAD
-=======
 // Helper function to fetch profile status with a timeout to prevent hanging on database issues or recursive RLS policies
 async function fetchProfileStatusWithTimeout(userId: string, timeoutMs: number = 4000): Promise<string | null> {
   if (!supabase) return null;
@@ -36,7 +34,6 @@ async function fetchProfileStatusWithTimeout(userId: string, timeoutMs: number =
   }
 }
 
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -48,37 +45,17 @@ export function useAuth() {
       setLoading(false);
       return;
     }
-<<<<<<< HEAD
-    const { data } = await supabase.auth.getSession();
-    setSession(data.session);
-    setUser(data.session?.user ?? null);
-    
-    console.log('[use-auth] refresh - session:', !!data.session, 'user:', !!data.session?.user);
-    
-    // Check if user is approved
-    if (data.session?.user) {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('status')
-        .eq('id', data.session.user.id)
-        .maybeSingle();
-      
-      console.log('[use-auth] refresh - profile:', profile, 'error:', error);
-      setIsApproved(profile?.status === 'active');
-    } else {
-      setIsApproved(false);
-    }
-    
-    setLoading(false);
-=======
     try {
       const { data } = await supabase.auth.getSession();
       setSession(data.session);
       setUser(data.session?.user ?? null);
       
+      console.log('[use-auth] refresh - session:', !!data.session, 'user:', !!data.session?.user);
+      
       // Check if user is approved
       if (data.session?.user) {
         const status = await fetchProfileStatusWithTimeout(data.session.user.id);
+        console.log('[use-auth] refresh - profile status:', status);
         setIsApproved(status === 'active');
       } else {
         setIsApproved(false);
@@ -89,7 +66,6 @@ export function useAuth() {
     } finally {
       setLoading(false);
     }
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
   }, []);
 
   useEffect(() => {
@@ -97,37 +73,15 @@ export function useAuth() {
     if (!supabase) return;
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-<<<<<<< HEAD
-      console.log('[use-auth] onAuthStateChange - event:', _event, 'session:', !!newSession);
-      setSession(newSession);
-      setUser(newSession?.user ?? null);
-      
-      // Check if user is approved
-      if (newSession?.user && supabase) {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('status')
-          .eq('id', newSession.user.id)
-          .maybeSingle();
-        
-        console.log('[use-auth] onAuthStateChange - profile:', profile, 'error:', error);
-        setIsApproved(profile?.status === 'active');
-      } else {
-        setIsApproved(false);
-      }
-      
-      setLoading(false);
-    });
-
-    return () => listener.subscription.unsubscribe();
-=======
       try {
+        console.log('[use-auth] onAuthStateChange - event:', _event, 'session:', !!newSession);
         setSession(newSession);
         setUser(newSession?.user ?? null);
         
         // Check if user is approved
         if (newSession?.user) {
           const status = await fetchProfileStatusWithTimeout(newSession.user.id);
+          console.log('[use-auth] onAuthStateChange - profile status:', status);
           setIsApproved(status === 'active');
         } else {
           setIsApproved(false);
@@ -143,7 +97,6 @@ export function useAuth() {
     return () => {
       listener?.subscription?.unsubscribe();
     };
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
   }, [refresh]);
 
   const signOut = useCallback(async () => {
@@ -155,7 +108,3 @@ export function useAuth() {
 
   return { user, session, loading, signOut, refresh, isConfigured: !!supabase, isApproved };
 }
-<<<<<<< HEAD
-=======
-
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777

@@ -130,29 +130,25 @@ export default function AdminDashboard() {
             console.warn('Campaigns table not accessible:', e);
           }
 
-<<<<<<< HEAD
-          // Count leads extracted from map_searches (handle if table doesn't exist)
+          // Count leads extracted (from scraped_searches and map_searches)
           try {
-            const { data: searches } = await supabase
-              .from('map_searches')
-              .select('total_results')
-              .eq('user_id', profile.id);
-
-            totalLeads = searches?.reduce((sum: number, s: any) => sum + (s.total_results || 0), 0) || 0;
-          } catch (e) {
-            console.warn('Map searches table not accessible:', e);
-=======
-          // Count leads extracted from scraped_searches (handle if table doesn't exist)
-          try {
-            const { data: searches } = await supabase
+            const { data: scraped } = await supabase
               .from('scraped_searches')
               .select('found_count')
               .eq('user_id', profile.id);
-
-            totalLeads = searches?.reduce((sum: number, s: any) => sum + (s.found_count || 0), 0) || 0;
+            totalLeads += scraped?.reduce((sum: number, s: any) => sum + (s.found_count || 0), 0) || 0;
           } catch (e) {
-            console.warn('Scraped searches table not accessible:', e);
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
+            console.warn('scraped_searches table not accessible:', e);
+          }
+
+          try {
+            const { data: mapSearches } = await supabase
+              .from('map_searches')
+              .select('total_results')
+              .eq('user_id', profile.id);
+            totalLeads += mapSearches?.reduce((sum: number, s: any) => sum + (s.total_results || 0), 0) || 0;
+          } catch (e) {
+            console.warn('map_searches table not accessible:', e);
           }
 
           return {

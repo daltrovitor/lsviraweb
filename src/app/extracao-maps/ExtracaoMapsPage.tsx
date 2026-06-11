@@ -43,15 +43,9 @@ interface HistorySearch {
   id: string;
   query: string;
   target_limit: number;
-<<<<<<< HEAD
-  leads_found: number;
-  created_at: string;
-  specifications: any;
-=======
   found_count: number;
   created_at: string;
   filters: any;
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
 }
 
 interface MapsPageProps {
@@ -63,17 +57,12 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
   const [limit, setLimit] = useState(15);
   
   // Custom specifications toggles
-<<<<<<< HEAD
-  const [onlyCellphones, setOnlyCellphones] = useState(false);
-  const [excludeFixedPhones, setExcludeFixedPhones] = useState(true);
-  const [onlyWithInstagramOrWhatsapp, setOnlyWithInstagramOrWhatsapp] = useState(false);
-=======
   const [onlyCellphones, setOnlyCellphones] = useState(true);
+  const [excludeFixedPhones, setExcludeFixedPhones] = useState(true);
   const [onlyWithInstagramOrWhatsapp, setOnlyWithInstagramOrWhatsapp] = useState(false);
   const [onlyWithWebsite, setOnlyWithWebsite] = useState(false);
   const [scrapeMinRating, setScrapeMinRating] = useState<number>(0);
   const [scrapeMinReviews, setScrapeMinReviews] = useState<number>(0);
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
 
   const [status, setStatus] = useState<'idle' | 'starting' | 'extracting' | 'completed' | 'error' | 'stopped'>('idle');
   const [logs, setLogs] = useState<{ message: string; timestamp: Date }[]>([]);
@@ -102,11 +91,7 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
       if (!user) return;
 
       const { data, error } = await supabase
-<<<<<<< HEAD
-        .from('maps_searches')
-=======
         .from('scraped_searches')
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -118,10 +103,6 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
   };
 
   useEffect(() => {
-<<<<<<< HEAD
-    fetchHistory();
-
-=======
     socket.emit('get-maps-status');
   }, []);
 
@@ -133,8 +114,6 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
       const errMsg = typeof err === 'string' ? err : err.message || JSON.stringify(err);
       setLogs(prev => [...prev.slice(-99), { message: `Erro de conexão/servidor: ${errMsg}`, timestamp: new Date() }]);
     };
-
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
     socket.on('maps-status', (newStatus: string) => {
       setStatus(newStatus as any);
       if (newStatus === 'starting') {
@@ -142,14 +121,6 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
         setProgress({ current: 0, total: 0 });
       }
       
-<<<<<<< HEAD
-      // Auto-save search to Supabase upon completion
-      if (newStatus === 'completed') {
-        // Encontra os resultados finais na hora de salvar
-        setResults(prev => {
-          saveSearchToSupabase(query, limit, prev);
-          return prev;
-=======
       // Refresh history from Supabase upon completion since it was saved in real-time
       if (newStatus === 'completed') {
         fetchHistory();
@@ -179,7 +150,6 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
             }
             return prevHistory;
           });
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
         });
       }
     });
@@ -188,19 +158,6 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
       setLogs(prev => [...prev.slice(-99), log]);
     });
 
-<<<<<<< HEAD
-    socket.on('maps-item-scraped', (data: { item: Place, current: number, total: number }) => {
-      setResults(prev => {
-        // Garante que não adiciona duplicados
-        if (prev.some(p => p.phone === data.item.phone && p.title === data.item.title)) {
-          return prev;
-        }
-        return [...prev, data.item];
-      });
-      setProgress({ current: data.current, total: data.total });
-    });
-
-=======
     socket.on('maps-item-scraped', (data: { item: Place | null, current: number, total: number }) => {
       if (data.item) {
         setResults(prev => {
@@ -216,19 +173,13 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
 
     socket.on('error', onError);
 
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
     return () => {
       socket.off('maps-status');
       socket.off('maps-log');
       socket.off('maps-item-scraped');
-<<<<<<< HEAD
-    };
-  }, [query, limit, onlyCellphones, excludeFixedPhones, onlyWithInstagramOrWhatsapp]);
-=======
       socket.off('error', onError);
     };
-  }, [query, limit, onlyCellphones, onlyWithInstagramOrWhatsapp, onlyWithWebsite, scrapeMinRating, scrapeMinReviews]);
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
+  }, [query, limit, onlyCellphones, excludeFixedPhones, onlyWithInstagramOrWhatsapp, onlyWithWebsite, scrapeMinRating, scrapeMinReviews]);
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -240,33 +191,20 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // 1. Salvar metadados da busca
       const { data: searchData, error: searchErr } = await supabase
-<<<<<<< HEAD
-        .from('maps_searches')
-=======
         .from('scraped_searches')
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
         .insert({
           user_id: user.id,
           query: searchQuery,
           target_limit: targetLimit,
-<<<<<<< HEAD
-          leads_found: finalLeads.length,
-          specifications: {
-            onlyCellphones,
-            excludeFixedPhones,
-            onlyWithInstagramOrWhatsapp
-=======
           found_count: finalLeads.length,
           filters: {
             onlyCellphones,
-            excludeFixedPhones: onlyCellphones,
+            excludeFixedPhones,
             onlyWithInstagramOrWhatsapp,
             onlyWithWebsite,
             minRating: scrapeMinRating,
             minReviews: scrapeMinReviews
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
           }
         })
         .select('*')
@@ -278,10 +216,6 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
       // 2. Salvar leads em lote
       if (finalLeads.length > 0) {
         const leadsToInsert = finalLeads.map(lead => ({
-<<<<<<< HEAD
-          user_id: user.id,
-=======
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
           search_id: searchData.id,
           title: lead.title,
           address: lead.address || '',
@@ -313,19 +247,13 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
     setLimit(search.target_limit);
     
     // Tentar ler especificações salvas
-<<<<<<< HEAD
-    if (search.specifications) {
-      setOnlyCellphones(!!search.specifications.onlyCellphones);
-      setExcludeFixedPhones(!!search.specifications.excludeFixedPhones);
-      setOnlyWithInstagramOrWhatsapp(!!search.specifications.onlyWithInstagramOrWhatsapp);
-=======
     if (search.filters) {
       setOnlyCellphones(!!search.filters.onlyCellphones);
+      setExcludeFixedPhones(!!search.filters.excludeFixedPhones);
       setOnlyWithInstagramOrWhatsapp(!!search.filters.onlyWithInstagramOrWhatsapp);
       setOnlyWithWebsite(!!search.filters.onlyWithWebsite);
       setScrapeMinRating(Number(search.filters.minRating || 0));
       setScrapeMinReviews(Number(search.filters.minReviews || 0));
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
     }
 
     try {
@@ -350,26 +278,18 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
     setSelectedHistoryId(null);
     setResults([]);
     setLogs([{ message: `Iniciando nova pesquisa por "${query}"...`, timestamp: new Date() }]);
-<<<<<<< HEAD
-=======
     setStatus('starting');
     setProgress({ current: 0, total: limit });
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
     
     socket.emit('start-maps-scrape', { 
       query, 
       limit,
       onlyCellphones,
-<<<<<<< HEAD
       excludeFixedPhones,
-      onlyWithInstagramOrWhatsapp
-=======
-      excludeFixedPhones: onlyCellphones,
       onlyWithInstagramOrWhatsapp,
       onlyWithWebsite,
       minRating: scrapeMinRating,
       minReviews: scrapeMinReviews
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
     });
   };
 
@@ -400,15 +320,8 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
     document.body.removeChild(link);
   };
 
-<<<<<<< HEAD
-  // Sanitização e envio para a fila de disprados
-  const handleImportToCampaign = () => {
-    if (!onImportToCampaign) return;
-    
-=======
   // Sanitização e envio para a fila de disparos
   const handleImportToCampaign = () => {
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
     // Filtra e sanitiza todos os telefones de leads usando regex robusto
     const sanitizedLeads = filteredResults
       .map(r => {
@@ -425,11 +338,6 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
       return alert('Nenhum lead com telefone celular válido foi encontrado após a sanitização (ex: faltam dígitos ou fixos foram excluídos).');
     }
     
-<<<<<<< HEAD
-    const csvLines = sanitizedLeads.map(l => `${l.number}, ${l.name}`).join('\n');
-    onImportToCampaign(csvLines);
-    alert(`Sucesso! ${sanitizedLeads.length} leads foram sanitizados e enviados para a fila de disparo! Vá para a aba "Disparo" para ver seus contatos.`);
-=======
     if (onImportToCampaign) {
       const csvLines = sanitizedLeads.map(l => `${l.number}, ${l.name}`).join('\n');
       onImportToCampaign(csvLines);
@@ -439,7 +347,6 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
       alert(`Sucesso! ${sanitizedLeads.length} leads foram sanitizados e preparados para importação. Redirecionando para a página de disparos...`);
       window.location.href = '/disparos';
     }
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
   };
 
   // dynamic local filtering
@@ -540,22 +447,13 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
               {/* Toggle specs container */}
               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex flex-col gap-3.5 mt-2">
                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-<<<<<<< HEAD
-                  <Filter size={10} /> Sanitização em Tempo Real
-=======
                   <Filter size={10} /> Filtros de Qualificação
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
                 </h4>
 
                 <label className="flex items-center justify-between cursor-pointer group">
                   <div className="flex flex-col">
-<<<<<<< HEAD
-                    <span className="text-xs font-bold text-slate-700 group-hover:text-blue-900 transition-colors">Apenas Números Celulares</span>
-                    <span className="text-[9px] text-slate-400">Foca em contatos móveis (9 dígitos após DDD)</span>
-=======
                     <span className="text-xs font-bold text-slate-700 group-hover:text-blue-900 transition-colors">Apenas Celular / WhatsApp</span>
                     <span className="text-[9px] text-slate-400">Ignora fixos e foca em celulares</span>
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
                   </div>
                   <input
                     type="checkbox"
@@ -568,7 +466,6 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
 
                 <label className="flex items-center justify-between cursor-pointer group">
                   <div className="flex flex-col">
-<<<<<<< HEAD
                     <span className="text-xs font-bold text-slate-700 group-hover:text-blue-900 transition-colors">Bloquear Telefones Fixos</span>
                     <span className="text-[9px] text-slate-400">Ignora fixos comerciais (10 dígitos)</span>
                   </div>
@@ -584,11 +481,7 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
                 <label className="flex items-center justify-between cursor-pointer group">
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-slate-700 group-hover:text-blue-900 transition-colors">Instagram ou WhatsApp</span>
-                    <span className="text-[9px] text-slate-400">Filtra sites corporativos genéricos</span>
-=======
-                    <span className="text-xs font-bold text-slate-700 group-hover:text-blue-900 transition-colors">Instagram ou WhatsApp</span>
                     <span className="text-[9px] text-slate-400">Busca links de redes sociais no site</span>
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
                   </div>
                   <input
                     type="checkbox"
@@ -598,8 +491,6 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
                     className="w-4 h-4 rounded text-blue-900 focus:ring-blue-900"
                   />
                 </label>
-<<<<<<< HEAD
-=======
 
                 <label className="flex items-center justify-between cursor-pointer group">
                   <div className="flex flex-col">
@@ -646,7 +537,6 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
                     </select>
                   </div>
                 </div>
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
               </div>
 
               <div className="mt-4 flex gap-2">
@@ -751,11 +641,7 @@ export default function ExtracaoMapsPage({ onImportToCampaign }: MapsPageProps) 
                       <div className="text-[9px] text-slate-400 mt-1 flex items-center gap-1.5">
                         <span>{new Date(search.created_at).toLocaleDateString('pt-BR')}</span>
                         <span className="w-1 h-1 rounded-full bg-slate-300" />
-<<<<<<< HEAD
-                        <span className="font-semibold text-blue-900">{search.leads_found} leads salvos</span>
-=======
                         <span className="font-semibold text-blue-900">{search.found_count} leads salvos</span>
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
                       </div>
                     </div>
                     <ChevronRight size={14} className="text-slate-400 group-hover:text-blue-900 transition-colors group-hover:translate-x-0.5" />

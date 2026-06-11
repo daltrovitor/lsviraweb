@@ -24,15 +24,11 @@ export default function MapsSection() {
   const [limit, setLimit] = useState(50);
   const [filters, setFilters] = useState({
     onlyCellphones: true,
-<<<<<<< HEAD
     excludeFixedPhones: true,
-    onlyWithInstagramOrWhatsapp: false
-=======
     onlyWithInstagramOrWhatsapp: false,
     onlyWithWebsite: false,
     minRating: 0,
     minReviews: 0
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
   });
   
   const [status, setStatus] = useState<'idle' | 'starting' | 'extracting' | 'completed' | 'error' | 'stopped'>('idle');
@@ -46,11 +42,6 @@ export default function MapsSection() {
       setResults(prev => [...prev, data.item]);
     };
 
-<<<<<<< HEAD
-    socket.on('maps-status', onStatus);
-    socket.on('maps-log', onLog);
-    socket.on('maps-item-scraped', onItem);
-=======
     const onError = (err: any) => {
       console.error('[Socket Error]', err);
       const errMsg = typeof err === 'string' ? err : err.message || JSON.stringify(err);
@@ -61,27 +52,19 @@ export default function MapsSection() {
     socket.on('maps-log', onLog);
     socket.on('maps-item-scraped', onItem);
     socket.on('error', onError);
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
 
     return () => {
       socket.off('maps-status', onStatus);
       socket.off('maps-log', onLog);
       socket.off('maps-item-scraped', onItem);
-<<<<<<< HEAD
-=======
       socket.off('error', onError);
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
     };
   }, []);
 
   const toggleFilter = (key: keyof typeof filters) => {
-<<<<<<< HEAD
-    setFilters(prev => ({ ...prev, [key]: !prev[key] }));
-=======
-    if (typeof filters[key] === 'boolean') {
+    if (typeof (filters as any)[key] === 'boolean') {
       setFilters(prev => ({ ...prev, [key]: !prev[key] }));
     }
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
   };
 
   const startScrape = () => {
@@ -91,16 +74,12 @@ export default function MapsSection() {
     socket.emit('start-maps-scrape', {
       query,
       limit,
-<<<<<<< HEAD
-      ...filters
-=======
       onlyCellphones: filters.onlyCellphones,
-      excludeFixedPhones: filters.onlyCellphones,
+      excludeFixedPhones: filters.excludeFixedPhones,
       onlyWithInstagramOrWhatsapp: filters.onlyWithInstagramOrWhatsapp,
       onlyWithWebsite: filters.onlyWithWebsite,
       minRating: filters.minRating,
       minReviews: filters.minReviews
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
     });
   };
 
@@ -109,53 +88,7 @@ export default function MapsSection() {
   };
 
   const saveToSupabase = async () => {
-<<<<<<< HEAD
-    if (results.length === 0) return alert('Nenhum lead para salvar');
-    if (!supabase) return alert('Supabase não configurado');
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return alert('Usuário não autenticado');
-
-    try {
-      // 1. Criar a busca
-      const { data: search, error: searchErr } = await supabase
-        .from('scraped_searches')
-        .insert({
-          user_id: user.id,
-          query,
-          target_limit: limit,
-          found_count: results.length,
-          filters
-        })
-        .select('*')
-        .single();
-        
-      if (searchErr) throw searchErr;
-
-      // 2. Inserir leads
-      const leadsToInsert = results.map(r => ({
-        search_id: search.id,
-        title: r.title,
-        address: r.address,
-        phone: r.phone,
-        website: r.website,
-        rating: r.rating,
-        category: r.category,
-        url: r.url
-      }));
-
-      const { error: leadsErr } = await supabase
-        .from('scraped_leads')
-        .insert(leadsToInsert);
-
-      if (leadsErr) throw leadsErr;
-      
-      alert('Busca e leads salvos com sucesso no histórico!');
-    } catch (err: any) {
-      alert(`Erro ao salvar: ${err.message}`);
-    }
-=======
     alert('Sua busca e todos os leads já são salvos automaticamente no histórico em tempo real enquanto a extração está rodando!');
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
   };
 
   const exportCSV = () => {
@@ -232,19 +165,11 @@ export default function MapsSection() {
                 <div className="space-y-2">
                   <button onClick={() => toggleFilter('onlyCellphones')} className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors text-left">
                     {filters.onlyCellphones ? <CheckSquare className="text-navy-900" size={18} /> : <Square className="text-slate-300" size={18} />}
-<<<<<<< HEAD
                     <span className="text-sm font-semibold text-slate-700">Apenas Celulares (Ignora telefones sem 9)</span>
                   </button>
                   <button onClick={() => toggleFilter('excludeFixedPhones')} className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors text-left">
                     {filters.excludeFixedPhones ? <CheckSquare className="text-navy-900" size={18} /> : <Square className="text-slate-300" size={18} />}
                     <span className="text-sm font-semibold text-slate-700">Excluir Fixos (Garante contatos de WhatsApp)</span>
-                  </button>
-                  <button onClick={() => toggleFilter('onlyWithInstagramOrWhatsapp')} className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors text-left">
-                    {filters.onlyWithInstagramOrWhatsapp ? <CheckSquare className="text-navy-900" size={18} /> : <Square className="text-slate-300" size={18} />}
-                    <span className="text-sm font-semibold text-slate-700">Apenas com Instagram ou Link WA.me</span>
-                  </button>
-=======
-                    <span className="text-sm font-semibold text-slate-700">Apenas Celulares / WhatsApp</span>
                   </button>
                   <button onClick={() => toggleFilter('onlyWithInstagramOrWhatsapp')} className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors text-left">
                     {filters.onlyWithInstagramOrWhatsapp ? <CheckSquare className="text-navy-900" size={18} /> : <Square className="text-slate-300" size={18} />}
@@ -284,7 +209,6 @@ export default function MapsSection() {
                       <option value={100}>≥ 100 avaliações</option>
                     </select>
                   </div>
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
                 </div>
               </div>
 

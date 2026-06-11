@@ -27,21 +27,6 @@ function profileFromUser(user: User): UserProfile {
 export async function fetchUserProfile(user: User): Promise<UserProfile> {
   if (!supabase) return profileFromUser(user);
 
-<<<<<<< HEAD
-  const { data, error } = await supabase
-    .from('profiles')
-    .select(PROFILE_COLUMNS)
-    .eq('id', user.id)
-    .maybeSingle();
-
-  if (error) {
-    console.warn('[profiles] fetch failed:', error.message);
-    return profileFromUser(user);
-  }
-
-  if (data) {
-    return { ...data, email: user.email ?? undefined };
-=======
   const timeoutPromise = new Promise<null>((_, reject) =>
     setTimeout(() => reject(new Error('Profile fetch timeout')), 4000)
   );
@@ -69,7 +54,6 @@ export async function fetchUserProfile(user: User): Promise<UserProfile> {
 
   if (data) {
     return { ...data, email: user.email ?? undefined } as UserProfile;
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
   }
 
   // Row missing (e.g. user created before trigger) — create if policy allows
@@ -80,16 +64,6 @@ export async function fetchUserProfile(user: User): Promise<UserProfile> {
     status: 'pending',
   };
 
-<<<<<<< HEAD
-  const { data: created, error: insertError } = await supabase
-    .from('profiles')
-    .insert(insertPayload)
-    .select(PROFILE_COLUMNS)
-    .maybeSingle();
-
-  if (!insertError && created) {
-    return { ...created, email: user.email ?? undefined };
-=======
   const insertQueryPromise = (async () => {
     const { data: created, error: insertError } = await supabase
       .from('profiles')
@@ -113,7 +87,6 @@ export async function fetchUserProfile(user: User): Promise<UserProfile> {
 
   if (created) {
     return { ...created, email: user.email ?? undefined } as UserProfile;
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
   }
 
   return profileFromUser(user);

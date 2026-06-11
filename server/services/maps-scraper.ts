@@ -1,10 +1,7 @@
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { EventEmitter } from 'events';
-<<<<<<< HEAD
-=======
 import { supabase } from '../utils/supabase';
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
 
 puppeteer.use(StealthPlugin());
 
@@ -24,35 +21,25 @@ export interface ScrapeOptions {
   onlyCellphones?: boolean;
   excludeFixedPhones?: boolean;
   onlyWithInstagramOrWhatsapp?: boolean;
-<<<<<<< HEAD
-=======
   onlyWithWebsite?: boolean;
   minRating?: number;
   minReviews?: number;
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
 }
 
 export class MapsScraperService extends EventEmitter {
   private isStopped: boolean = false;
-<<<<<<< HEAD
-  private browser: any = null;
-  public userId: string;
-=======
   private isRunning: boolean = false;
   private browser: any = null;
   public userId: string;
   private validCount: number = 0;
   private maxItems: number = 30;
   private status: 'idle' | 'starting' | 'extracting' | 'completed' | 'error' | 'stopped' = 'idle';
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
 
   constructor(userId: string) {
     super();
     this.userId = userId;
   }
 
-<<<<<<< HEAD
-=======
   public getStatus() {
     return {
       status: this.isRunning ? this.status : 'idle',
@@ -61,28 +48,19 @@ export class MapsScraperService extends EventEmitter {
     };
   }
 
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
   public async startScrape(options: ScrapeOptions) {
     const {
       query,
       limit: maxItems = 30,
       onlyCellphones = false,
       excludeFixedPhones = false,
-<<<<<<< HEAD
-      onlyWithInstagramOrWhatsapp = false
-    } = options;
-
-    this.isStopped = false;
-    this.emit('status', this.userId, 'starting');
-    
-=======
       onlyWithInstagramOrWhatsapp = false,
       onlyWithWebsite = false,
       minRating = 0,
       minReviews = 0
     } = options;
 
-    // Impedir múltiplas execuções simultâneas (causa principal de 6+ browsers abrindo ao mesmo tempo)
+    // Impedir múltiplas execuções simultâneas
     if (this.isRunning) {
       this.emit('log', this.userId, 'Extração já em andamento. Aguarde a conclusão ou pare antes de iniciar outra.');
       return;
@@ -107,7 +85,7 @@ export class MapsScraperService extends EventEmitter {
             found_count: 0,
             filters: {
               onlyCellphones,
-              excludeFixedPhones: excludeFixedPhones || onlyCellphones,
+              excludeFixedPhones,
               onlyWithInstagramOrWhatsapp,
               onlyWithWebsite,
               minRating,
@@ -129,16 +107,11 @@ export class MapsScraperService extends EventEmitter {
     }
     
     let page: any = null;
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
     try {
       this.emit('log', this.userId, 'Iniciando extração...');
       console.log(`[MapsScraper] Iniciando navegador invisível para usuário ${this.userId}...`);
 
-<<<<<<< HEAD
-      // Configuração para Render (usa Chrome do sistema)
-=======
       // Configuração base de lançamento
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
       const launchOptions: any = {
         headless: 'new',
         args: [
@@ -152,13 +125,6 @@ export class MapsScraperService extends EventEmitter {
         ]
       };
 
-<<<<<<< HEAD
-        // Log adicional para diagnóstico (depois de declarar launchOptions)
-        this.emit('log', this.userId, `Debug: launchOptions=${JSON.stringify({ headless: launchOptions.headless, args: launchOptions.args?.slice(0,5) })}`);
-
-      // No Render, tentar múltiplos caminhos do Chrome
-      if (process.env.RENDER || process.env.RENDER_EXTERNAL_HOSTNAME) {
-=======
       // Se for Linux, adicionar argumentos para baixo uso de memória
       if (process.platform === 'linux') {
         launchOptions.args.push('--single-process');
@@ -167,7 +133,6 @@ export class MapsScraperService extends EventEmitter {
 
       // No Linux (Render/Railway/etc.), procurar ou configurar Chrome
       if (process.platform === 'linux' || process.env.RENDER || process.env.RENDER_EXTERNAL_HOSTNAME) {
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
         const possiblePaths = [
           '/usr/bin/chromium-browser',
           '/usr/bin/chromium',
@@ -182,20 +147,12 @@ export class MapsScraperService extends EventEmitter {
             const fs = require('fs');
             if (fs.existsSync(path)) {
               launchOptions.executablePath = path;
-<<<<<<< HEAD
-              console.log(`[MapsScraper] Usando Chrome em: ${path}`);
-=======
               console.log(`[MapsScraper] Usando Chrome do sistema em: ${path}`);
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
               foundChrome = true;
               break;
             }
           } catch (e) {
-<<<<<<< HEAD
-            // Continuar para o próximo caminho
-=======
             // Continuar
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
           }
         }
         
@@ -204,12 +161,6 @@ export class MapsScraperService extends EventEmitter {
           try {
             const chromium = require('@sparticuz/chromium');
             launchOptions.executablePath = await chromium.executablePath();
-<<<<<<< HEAD
-            console.log(`[MapsScraper] Usando Chrome via @sparticuz/chromium: ${launchOptions.executablePath}`);
-          } catch (e) {
-            console.log(`[MapsScraper] @sparticuz/chromium não disponível: ${e}`);
-            // Fallback para Puppeteer padrão
-=======
             
             // Adicionar argumentos necessários do @sparticuz/chromium
             if (chromium.args && Array.isArray(chromium.args)) {
@@ -232,38 +183,19 @@ export class MapsScraperService extends EventEmitter {
             console.log(`[MapsScraper] Usando Chrome via @sparticuz/chromium: ${launchOptions.executablePath}`);
           } catch (e: any) {
             console.log(`[MapsScraper] @sparticuz/chromium não disponível: ${e.message}. Usando Puppeteer padrão.`);
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
           }
         }
       }
 
       try {
         this.browser = await puppeteer.launch(launchOptions);
-<<<<<<< HEAD
-        this.emit('log', this.userId, 'Navegador iniciado com sucesso.');
-      } catch (launchErr: any) {
-        console.log('[MapsScraper] Erro ao iniciar navegador:', launchErr);
-=======
         this.emit('log', this.userId, 'Navegador aberto. Iniciando pesquisa...');
       } catch (launchErr: any) {
         console.error('[MapsScraper] Erro ao iniciar navegador:', launchErr);
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
         this.emit('log', this.userId, `Erro ao iniciar navegador: ${launchErr.message}`);
         throw launchErr;
       }
 
-<<<<<<< HEAD
-      const page = await this.browser.newPage();
-      await page.setViewport({ width: 1920, height: 2000 });
-      await page.setExtraHTTPHeaders({ 'Accept-Language': 'pt-BR,pt;q=0.9' });
-
-      const searchUrl = `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
-      this.emit('log', this.userId, `Buscando por: "${query}"...`);
-      this.emit('log', this.userId, `Debug: visitando busca: ${searchUrl}`);
-      try {
-        await page.goto(searchUrl, { waitUntil: 'networkidle2', timeout: 60000 });
-        this.emit('log', this.userId, 'Página de busca carregada.');
-=======
       page = await this.browser.newPage();
       await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
       await page.setViewport({ width: 1920, height: 2000 });
@@ -311,7 +243,6 @@ export class MapsScraperService extends EventEmitter {
         } catch (consentErr) {
           // Ignorar
         }
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
       } catch (gotoErr: any) {
         console.log('[MapsScraper] Erro ao acessar searchUrl:', gotoErr);
         this.emit('log', this.userId, `Erro ao acessar busca: ${gotoErr.message}`);
@@ -324,11 +255,7 @@ export class MapsScraperService extends EventEmitter {
         console.log(`[MapsScraper] Contêiner de resultados não encontrado rapidamente, tentando prosseguir...`);
       }
 
-<<<<<<< HEAD
-      this.emit('log', this.userId, 'Carregando lista de estabelecimentos...');
-=======
       this.emit('log', this.userId, 'Carregando lista de locais (rolando a página)...');
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
       
       const linksToCollect = maxItems * 5;
       const links = await page.evaluate(async (max: number) => {
@@ -358,25 +285,16 @@ export class MapsScraperService extends EventEmitter {
         }
         return Array.from(linksSet);
       }, linksToCollect).catch((evalErr: any) => {
-        // Em caso de erro no evaluate, retornar lista vazia e logar
         console.error('[MapsScraper] Erro no page.evaluate (links):', evalErr);
         return [];
       });
 
-<<<<<<< HEAD
-      this.emit('log', this.userId, `Encontrados ${links.length} locais em potencial no Maps. Iniciando extração filtrada...`);
-      this.emit('log', this.userId, `Debug: primeirasLinks=${JSON.stringify(links.slice(0,5))}`);
-      this.emit('status', this.userId, 'extracting');
-
-      let validCount = 0;
-=======
       this.emit('log', this.userId, `Encontrados ${links.length} locais. Iniciando extração...`);
       this.status = 'extracting';
       this.emit('status', this.userId, 'extracting');
 
       let validCount = 0;
       this.validCount = 0;
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
       
       for (const link of links) {
         if (this.isStopped) {
@@ -390,24 +308,6 @@ export class MapsScraperService extends EventEmitter {
         }
 
         try {
-<<<<<<< HEAD
-          this.emit('log', this.userId, `Abrindo página item: ${link}`);
-          const itemPage = await this.browser.newPage();
-          await itemPage.setViewport({ width: 1920, height: 2000 });
-          await itemPage.setExtraHTTPHeaders({ 'Accept-Language': 'pt-BR,pt;q=0.9' });
-
-          try {
-            await itemPage.goto(link, { waitUntil: 'domcontentloaded', timeout: 45000 });
-          } catch (navErr: any) {
-            this.emit('log', this.userId, `Erro de navegação para ${link}: ${navErr.message}`);
-            await itemPage.close().catch(() => {});
-            continue;
-          }
-
-          await itemPage.waitForSelector('h1', { timeout: 6000 }).catch(() => {});
-
-          const placeData = await itemPage.evaluate(() => {
-=======
           console.log(`[MapsScraper] Abrindo item: ${link}`);
 
           try {
@@ -420,7 +320,6 @@ export class MapsScraperService extends EventEmitter {
           await page.waitForSelector('h1', { timeout: 8000 }).catch(() => {});
 
           const placeData = await page.evaluate(() => {
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
             const title = document.querySelector('h1')?.textContent?.trim() || '';
             const address = document.querySelector('button[data-item-id="address"]')?.textContent?.trim() || '';
             const phone = document.querySelector('button[data-item-id^="phone:tel:"]')?.textContent?.trim() || 
@@ -432,19 +331,6 @@ export class MapsScraperService extends EventEmitter {
             const category = document.querySelector('button[jsaction*="category"]')?.textContent?.trim() || 
                              document.querySelector('button.DkEaL')?.textContent?.trim() || '';
             
-<<<<<<< HEAD
-            return { title, address, phone, website, rating, category };
-          });
-
-          await itemPage.close().catch(() => {});
-          this.emit('log', this.userId, `Página item fechada: ${link}`);
-
-          if (!placeData.title) continue;
-
-          let cleanPhone = placeData.phone.replace(/\D/g, '');
-          if (!cleanPhone) {
-            this.emit('log', this.userId, `Ignorado: ${placeData.title} (Sem número de telefone comercial)`);
-=======
             // Extract reviews count
             let reviews = '0';
             const reviewsEl = document.querySelector('button[jsaction*="pane.rating.moreReviews"]');
@@ -486,7 +372,6 @@ export class MapsScraperService extends EventEmitter {
           let cleanPhone = placeData.phone.replace(/\D/g, '');
           if (!cleanPhone) {
             console.log(`[MapsScraper] Ignorado por falta de telefone: ${placeData.title}`);
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
             continue;
           }
 
@@ -495,29 +380,17 @@ export class MapsScraperService extends EventEmitter {
             localPhone = localPhone.substring(2);
           }
 
-<<<<<<< HEAD
-          const isCellphone = localPhone.length === 11 && localPhone.startsWith('9');
-          const isFixedPhone = localPhone.length === 10 || (localPhone.length === 11 && !localPhone.startsWith('9'));
-
-          if (onlyCellphones && !isCellphone) {
-            this.emit('log', this.userId, `Ignorado: ${placeData.title} (${placeData.phone} não é celular/WhatsApp)`);
-=======
-          // Mobile and Fixed phone recognition (correcting index checking)
+          // Mobile and Fixed phone recognition
           const isCellphone = (localPhone.length === 11 && localPhone[2] === '9') || (localPhone.length === 9 && localPhone[0] === '9');
           const isFixedPhone = localPhone.length === 10 || localPhone.length === 8 || (localPhone.length === 11 && localPhone[2] !== '9');
 
           if (onlyCellphones && !isCellphone) {
             console.log(`[MapsScraper] Ignorado por não ser celular: ${placeData.title} (${placeData.phone})`);
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
             continue;
           }
 
           if (excludeFixedPhones && isFixedPhone) {
-<<<<<<< HEAD
-            this.emit('log', this.userId, `Ignorado: ${placeData.title} (${placeData.phone} é telefone fixo)`);
-=======
             console.log(`[MapsScraper] Ignorado por ser fixo: ${placeData.title} (${placeData.phone})`);
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
             continue;
           }
 
@@ -527,27 +400,12 @@ export class MapsScraperService extends EventEmitter {
                                          webLower.includes('wa.me');
           
           if (onlyWithInstagramOrWhatsapp && placeData.website && !hasInstagramOrWhatsapp) {
-<<<<<<< HEAD
-            this.emit('log', this.userId, `Ignorado: ${placeData.title} (Possui site institucional próprio: ${placeData.website})`);
-=======
             console.log(`[MapsScraper] Ignorado por falta de rede social: ${placeData.title}`);
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
             continue;
           }
 
           const result: ScrapedPlace = { ...placeData, url: link };
           validCount++;
-<<<<<<< HEAD
-          
-          this.emit('item-scraped', this.userId, { item: result, current: validCount, total: maxItems });
-          this.emit('log', this.userId, `Extraído (${validCount}/${maxItems}): ${result.title} (${result.phone})`);
-
-        } catch (itemErr: any) {
-          console.log(`[MapsScraper] Erro ao extrair link: ${itemErr.message}`);
-        }
-        
-        await new Promise(r => setTimeout(r, 200));
-=======
           this.validCount = validCount;
 
           // Inserir lead no banco em tempo real
@@ -589,35 +447,20 @@ export class MapsScraperService extends EventEmitter {
         
         // Delay maior entre itens para evitar detecção de bot e reduzir uso de CPU
         await new Promise(r => setTimeout(r, 500 + Math.random() * 500));
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
       }
 
       if (!this.isStopped) {
         if (validCount < maxItems) {
-<<<<<<< HEAD
-          this.emit('log', this.userId, `Aviso: Pesquisa finalizada. Encontramos o máximo de leads possível na sua pesquisa. Apenas ${validCount} de ${maxItems} leads solicitados atendem às suas especificações.`);
-        } else {
-          this.emit('log', this.userId, `Extração finalizada com sucesso! Foram capturados ${validCount} leads qualificados.`);
-        }
-=======
           this.emit('log', this.userId, `Aviso: Pesquisa finalizada. Encontramos apenas ${validCount} de ${maxItems} leads que atendem aos critérios.`);
         } else {
           this.emit('log', this.userId, `Extração finalizada com sucesso! Foram capturados ${validCount} leads qualificados.`);
         }
         this.status = 'completed';
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
         this.emit('status', this.userId, 'completed');
       }
       
     } catch (error: any) {
       console.error(`[MapsScraper] Erro crítico na extração:`, error);
-<<<<<<< HEAD
-      const errMsg = error && error.message ? error.message : 'Erro desconhecido durante a extração';
-      this.emit('log', this.userId, `Ocorreu um erro durante a extração: ${errMsg}`);
-      this.emit('status', this.userId, 'error');
-      throw error;
-    } finally {
-=======
       
       let errMsg = error && error.message ? error.message : 'Erro desconhecido durante a extração';
       if (errMsg.includes('timeout') || errMsg.includes('waiting for selector')) {
@@ -629,7 +472,6 @@ export class MapsScraperService extends EventEmitter {
       throw error;
     } finally {
       this.isRunning = false;
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
       if (this.browser) {
         await this.browser.close();
         this.browser = null;
@@ -639,18 +481,12 @@ export class MapsScraperService extends EventEmitter {
 
   public stop() {
     this.isStopped = true;
-<<<<<<< HEAD
-=======
     this.isRunning = false;
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
     if (this.browser) {
       this.browser.close().catch(() => {});
       this.browser = null;
     }
-<<<<<<< HEAD
-=======
     this.status = 'stopped';
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
     this.emit('status', this.userId, 'stopped');
   }
 }

@@ -7,19 +7,17 @@ async function test() {
   }
   console.log('Testing connection to Supabase...');
   
-  const tables = ['map_searches', 'maps_searches', 'scraped_searches', 'scraped_leads'];
-  for (const t of tables) {
-    try {
-      const { data, error, status } = await supabase.from(t).select('id').limit(1);
-      if (error) {
-        console.log(`Table "${t}": FAILED (status ${status}) - Error:`, error.message);
-      } else {
-        console.log(`Table "${t}": SUCCESS (status ${status}) - Data:`, data);
-      }
-    } catch (err: any) {
-      console.log(`Table "${t}": THREW EXCEPTION - Error:`, err.message);
+  try {
+    const { data, error } = await supabase.from('scraped_searches').select('*').limit(10);
+    if (error) {
+      console.error('Error fetching scraped_searches:', error.message);
+    } else {
+      console.log('Data in scraped_searches:', JSON.stringify(data, null, 2));
     }
+  } catch (err: any) {
+    console.error('Exception fetching scraped_searches:', err.message);
   }
+  process.exit(0);
 }
 
 test();

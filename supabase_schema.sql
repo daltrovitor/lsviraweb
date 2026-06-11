@@ -30,34 +30,6 @@ CREATE POLICY "Users can insert own profile"
   WITH CHECK (auth.uid() = id);
 
 -- ==========================================
-<<<<<<< HEAD
--- 2. Tabela de Buscas no Maps (map_searches)
--- ==========================================
-CREATE TABLE IF NOT EXISTS public.map_searches (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  query TEXT NOT NULL,
-  total_results INTEGER DEFAULT 0,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
-);
-
-ALTER TABLE public.map_searches ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view own map searches" 
-  ON public.map_searches FOR SELECT 
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert own map searches" 
-  ON public.map_searches FOR INSERT 
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own map searches" 
-  ON public.map_searches FOR UPDATE 
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete own map searches" 
-  ON public.map_searches FOR DELETE 
-=======
 -- 2. Tabela de Buscas no Maps (maps_searches)
 -- ==========================================
 CREATE TABLE IF NOT EXISTS public.maps_searches (
@@ -86,7 +58,6 @@ CREATE POLICY "Users can update own maps searches"
 
 CREATE POLICY "Users can delete own maps searches" 
   ON public.maps_searches FOR DELETE 
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
   USING (auth.uid() = user_id);
 
 -- ==========================================
@@ -94,12 +65,8 @@ CREATE POLICY "Users can delete own maps searches"
 -- ==========================================
 CREATE TABLE IF NOT EXISTS public.scraped_leads (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-<<<<<<< HEAD
-  search_id UUID NOT NULL REFERENCES public.map_searches(id) ON DELETE CASCADE,
-=======
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   search_id UUID NOT NULL REFERENCES public.maps_searches(id) ON DELETE CASCADE,
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
   title TEXT,
   address TEXT,
   phone TEXT,
@@ -116,11 +83,7 @@ CREATE POLICY "Users can view own scraped leads"
   ON public.scraped_leads FOR SELECT 
   USING (
     search_id IN (
-<<<<<<< HEAD
-      SELECT id FROM public.map_searches WHERE user_id = auth.uid()
-=======
       SELECT id FROM public.maps_searches WHERE user_id = auth.uid()
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
     )
   );
 
@@ -128,11 +91,7 @@ CREATE POLICY "Users can insert own scraped leads"
   ON public.scraped_leads FOR INSERT 
   WITH CHECK (
     search_id IN (
-<<<<<<< HEAD
-      SELECT id FROM public.map_searches WHERE user_id = auth.uid()
-=======
       SELECT id FROM public.maps_searches WHERE user_id = auth.uid()
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
     )
   );
 
@@ -140,11 +99,7 @@ CREATE POLICY "Users can update own scraped leads"
   ON public.scraped_leads FOR UPDATE 
   USING (
     search_id IN (
-<<<<<<< HEAD
-      SELECT id FROM public.map_searches WHERE user_id = auth.uid()
-=======
       SELECT id FROM public.maps_searches WHERE user_id = auth.uid()
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
     )
   );
 
@@ -152,11 +107,7 @@ CREATE POLICY "Users can delete own scraped leads"
   ON public.scraped_leads FOR DELETE 
   USING (
     search_id IN (
-<<<<<<< HEAD
-      SELECT id FROM public.map_searches WHERE user_id = auth.uid()
-=======
       SELECT id FROM public.maps_searches WHERE user_id = auth.uid()
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
     )
   );
 
@@ -267,11 +218,7 @@ CREATE TABLE IF NOT EXISTS public.scraper_jobs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   query TEXT NOT NULL,
-<<<<<<< HEAD
-  limit INTEGER DEFAULT 30,
-=======
   "limit" INTEGER DEFAULT 30,
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
   only_cellphones BOOLEAN DEFAULT false,
   exclude_fixed_phones BOOLEAN DEFAULT false,
   only_with_instagram_or_whatsapp BOOLEAN DEFAULT false,
@@ -368,17 +315,12 @@ CREATE TRIGGER on_auth_user_created
 -- ==========================================
 -- Function para habilitar realtime nas tabelas de jobs
 -- ==========================================
-<<<<<<< HEAD
--- Criar publicação realtime se não existir
-CREATE PUBLICATION IF NOT EXISTS supabase_realtime;
-=======
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
     CREATE PUBLICATION supabase_realtime;
   END IF;
 END $$;
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
 
 -- Habilitar realtime para scraper_jobs
 ALTER PUBLICATION supabase_realtime ADD TABLE public.scraper_jobs;

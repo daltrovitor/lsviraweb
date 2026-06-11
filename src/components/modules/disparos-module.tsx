@@ -1,11 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-<<<<<<< HEAD
-import { Send, Users, Phone, Upload, Play, Pause, Square } from 'lucide-react';
-=======
 import { Send, Users, Phone, Upload, Play, Pause, Square, MapPin, Loader2 } from 'lucide-react';
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
 import { QRCodeSVG } from 'qrcode.react';
 import { socket } from '@/services/socket';
 import { supabase } from '@/lib/supabase';
@@ -21,35 +17,34 @@ import { loadAutomationFromStorage } from '@/lib/automation-storage';
 export function DisparosModule() {
   const [waStatus, setWaStatus] = useState<WhatsAppStatus>({ connected: false, state: 'disconnected' });
   const [contacts, setContacts] = useState<Contact[]>([]);
-<<<<<<< HEAD
-=======
   const [loadingLeads, setLoadingLeads] = useState(false);
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
   const [message, setMessage] = useState('Olá {nome}, tudo bem?');
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Load from localStorage on mount (supporting both keys)
   useEffect(() => {
-<<<<<<< HEAD
-    try {
-      const stored = localStorage.getItem('pending_disparos_contacts');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setContacts(parsed);
+    const keys = ['pending_disparos_contacts', 'ls_pending_imported_contacts'];
+    for (const key of keys) {
+      try {
+        const stored = localStorage.getItem(key);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setContacts(parsed);
+            localStorage.removeItem(key);
+            break; // found and loaded
+          }
         }
-        localStorage.removeItem('pending_disparos_contacts');
+      } catch (err) {
+        console.error(`Error loading pending contacts from ${key}:`, err);
       }
-    } catch (err) {
-      console.error('Error loading pending contacts:', err);
     }
   }, []);
 
   useEffect(() => {
-=======
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
     const onStatus = (s: WhatsAppStatus) => setWaStatus(s);
     const onCamp = (c: Campaign) => setCampaign(c);
     const onLog = (log: { message: string; timestamp: Date }) =>
@@ -59,24 +54,7 @@ export function DisparosModule() {
     socket.on('campaign-update', onCamp);
     socket.on('log', onLog);
     socket.emit('get-whatsapp-status');
-<<<<<<< HEAD
-=======
     socket.emit('get-campaign-status');
-
-    // Carrega contatos pendentes do localStorage importados da página do Maps
-    const pendingContacts = localStorage.getItem('ls_pending_imported_contacts');
-    if (pendingContacts) {
-      try {
-        const parsed = JSON.parse(pendingContacts);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setContacts(parsed);
-          localStorage.removeItem('ls_pending_imported_contacts');
-        }
-      } catch (err) {
-        console.error('Erro ao ler contatos importados do Maps:', err);
-      }
-    }
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
 
     return () => {
       socket.off('whatsapp-status', onStatus);
@@ -113,8 +91,6 @@ export function DisparosModule() {
     }
   };
 
-<<<<<<< HEAD
-=======
   const importFromMapsScrape = async () => {
     if (!supabase) return alert('Supabase não configurado');
     setLoadingLeads(true);
@@ -178,7 +154,6 @@ export function DisparosModule() {
     }
   };
 
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
   const startCampaign = () => {
     if (contacts.length === 0) return alert('Importe contatos primeiro');
     if (!message.trim()) return alert('Digite uma mensagem');
@@ -246,13 +221,6 @@ export function DisparosModule() {
               Contatos ({contacts.length})
             </CardTitle>
             <input type="file" accept=".csv" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
-<<<<<<< HEAD
-            <div className="flex gap-3 mb-4">
-              <Button variant="secondary" fullWidth onClick={() => fileInputRef.current?.click()} loading={uploading}>
-                <Upload size={18} />
-                Importar CSV
-              </Button>
-=======
             <div className="flex flex-col sm:flex-row gap-3 mb-4">
               <Button variant="secondary" className="flex-1" onClick={() => fileInputRef.current?.click()} loading={uploading}>
                 <Upload size={18} />
@@ -262,7 +230,6 @@ export function DisparosModule() {
                 {loadingLeads ? <Loader2 className="animate-spin" size={18} /> : <MapPin size={18} />}
                 Importar do Maps
               </Button>
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
               <Button variant="outline" onClick={() => setContacts([])}>
                 Limpar
               </Button>

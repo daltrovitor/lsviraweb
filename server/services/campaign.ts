@@ -3,8 +3,6 @@ import { whatsappManager } from './whatsapp';
 import { EventEmitter } from 'events';
 import { supabase } from '../utils/supabase';
 
-<<<<<<< HEAD
-=======
 // Helper function to parse user scheduled time forcing Brazil timezone America/Sao_Paulo (UTC-3)
 function parseScheduledTime(scheduledAt: string): Date {
   if (scheduledAt.includes('Z') || /[-+]\d{2}:\d{2}$/.test(scheduledAt)) {
@@ -13,7 +11,6 @@ function parseScheduledTime(scheduledAt: string): Date {
   return new Date(`${scheduledAt}-03:00`);
 }
 
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
 export class CampaignService extends EventEmitter {
   private campaign: Campaign | null = null;
   private isPaused: boolean = false;
@@ -28,13 +25,10 @@ export class CampaignService extends EventEmitter {
     setInterval(() => this.cleanTimestamps(), 60 * 60 * 1000);
   }
 
-<<<<<<< HEAD
-=======
   public getCampaign(): Campaign | null {
     return this.campaign;
   }
 
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
   private cleanTimestamps() {
     const now = Date.now();
     this.sentTimestamps = this.sentTimestamps.filter(t => now - t < 24 * 60 * 60 * 1000);
@@ -50,7 +44,6 @@ export class CampaignService extends EventEmitter {
     return this.sentTimestamps.filter(t => now - t < 24 * 60 * 60 * 1000).length;
   }
 
-<<<<<<< HEAD
   private getLocalDateParts(timeZone: string = 'America/Sao_Paulo'): { hour: number; minute: number; dayOfWeek: number } {
     try {
       const date = new Date();
@@ -89,49 +82,6 @@ export class CampaignService extends EventEmitter {
   private checkHour(start: string, end: string, timezone?: string): boolean {
     const { hour, minute } = this.getLocalDateParts(timezone);
     const currentMinutes = hour * 60 + minute;
-=======
-  // Get current time details specifically in America/Sao_Paulo timezone
-  private getLocalTime(): { hour: number; minute: number; day: number } {
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'America/Sao_Paulo',
-      hour: 'numeric',
-      minute: 'numeric',
-      weekday: 'short',
-      hour12: false
-    });
-
-    const parts = formatter.formatToParts(new Date());
-    let hour = 0;
-    let minute = 0;
-    let weekday = 'Sun';
-
-    for (const part of parts) {
-      if (part.type === 'hour') hour = parseInt(part.value, 10);
-      if (part.type === 'minute') minute = parseInt(part.value, 10);
-      if (part.type === 'weekday') weekday = part.value;
-    }
-
-    const dayShortToNum: Record<string, number> = {
-      'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6
-    };
-
-    return {
-      hour,
-      minute,
-      day: dayShortToNum[weekday] ?? new Date().getDay()
-    };
-  }
-
-  private checkDay(allowedDays: string[]): boolean {
-    const dayMap: Record<number, string> = { 0: 'Dom', 1: 'Seg', 2: 'Ter', 3: 'Qua', 4: 'Qui', 5: 'Sex', 6: 'Sab' };
-    const local = this.getLocalTime();
-    return allowedDays.includes(dayMap[local.day]);
-  }
-
-  private checkHour(start: string, end: string): boolean {
-    const local = this.getLocalTime();
-    const currentMinutes = local.hour * 60 + local.minute;
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
     const [startH, startM] = start.split(':').map(Number);
     const [endH, endM] = end.split(':').map(Number);
     const startMinutes = startH * 60 + startM;
@@ -169,11 +119,7 @@ export class CampaignService extends EventEmitter {
         status: this.campaign.status,
         stats: this.campaign.stats,
         automation: this.campaign.automation || {},
-<<<<<<< HEAD
-        scheduled_at: this.campaign.scheduledAt || null
-=======
         scheduled_at: this.campaign.scheduledAt ? parseScheduledTime(this.campaign.scheduledAt).toISOString() : null
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
       });
     } catch (err: any) {
       console.error('Erro de persistência no Supabase:', err.message);
@@ -193,20 +139,13 @@ export class CampaignService extends EventEmitter {
     this.isStopped = false;
 
     if (campaign.scheduledAt) {
-<<<<<<< HEAD
-      const scheduledTime = new Date(campaign.scheduledAt).getTime();
-=======
       const scheduledTime = parseScheduledTime(campaign.scheduledAt).getTime();
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
       const delay = scheduledTime - Date.now();
       if (delay > 0) {
         this.campaign.status = 'scheduled';
         this.emit('update', this.userId, this.campaign);
-<<<<<<< HEAD
-        this.emit('log', this.userId, `⏰ Campanha agendada para começar em: ${new Date(scheduledTime).toLocaleString('pt-BR')}`);
-=======
-        this.emit('log', this.userId, `⏰ Campanha agendada para começar em: ${new Date(scheduledTime).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`);
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
+        const tz = campaign.automation?.timezone || 'America/Sao_Paulo';
+        this.emit('log', this.userId, `⏰ Campanha agendada para começar em: ${new Date(scheduledTime).toLocaleString('pt-BR', { timeZone: tz })}`);
         await this.saveCampaignToDb();
 
         await new Promise<void>((resolve) => {
@@ -257,20 +196,12 @@ export class CampaignService extends EventEmitter {
         this.cleanTimestamps();
         const automation = this.campaign.automation;
         if (automation) {
-<<<<<<< HEAD
           if (automation.diasAtivos?.length > 0 && !this.checkDay(automation.diasAtivos, automation.timezone)) {
-=======
-          if (automation.diasAtivos?.length > 0 && !this.checkDay(automation.diasAtivos)) {
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
             this.emit('log', this.userId, `📅 Fora do dia permitido. Aguardando...`);
             if (!await this.sleepSafely(30000)) break;
             continue;
           }
-<<<<<<< HEAD
           if (automation.startTime && automation.endTime && !this.checkHour(automation.startTime, automation.endTime, automation.timezone)) {
-=======
-          if (automation.startTime && automation.endTime && !this.checkHour(automation.startTime, automation.endTime)) {
->>>>>>> 0d7a0786a3e6820d8214f24ae51d599406c45777
             this.emit('log', this.userId, `⏰ Fora do horário permitido. Aguardando...`);
             if (!await this.sleepSafely(30000)) break;
             continue;
