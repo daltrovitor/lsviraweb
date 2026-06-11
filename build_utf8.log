@@ -1,0 +1,50 @@
+
+> web@0.1.0 build:next
+> next build
+
+  Ôû▓ Next.js 14.2.3
+  - Environments: .env
+
+   Creating an optimized production build ...
+ Ô£ô Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/21) ...
+   Generating static pages (5/21) 
+   Generating static pages (10/21) 
+   Generating static pages (15/21) 
+ Ô£ô Generating static pages (21/21)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+Ôöî Ôùï /                                    1.42 kB         149 kB
+Ôö£ Ôùï /_not-found                          145 B          87.2 kB
+Ôö£ Ôùï /admin/dashboard                     5.15 kB         198 kB
+Ôö£ Ôùï /admin/login                         150 B           204 kB
+Ôö£ ãÆ /api/auth/login                      0 B                0 B
+Ôö£ ãÆ /api/auth/register                   0 B                0 B
+Ôö£ ãÆ /api/landing/submit-lead             0 B                0 B
+Ôö£ ãÆ /api/upload-csv                      0 B                0 B
+Ôö£ Ôùï /api/whatsapp/connect                0 B                0 B
+Ôö£ Ôùï /api/whatsapp/qr                     0 B                0 B
+Ôö£ Ôùï /automacao                           6 kB            136 kB
+Ôö£ Ôùï /complete-dashboard                  6.83 kB         139 kB
+Ôö£ Ôùï /dashboard                           6.57 kB         225 kB
+Ôö£ Ôùï /disparos                            6.09 kB         180 kB
+Ôö£ Ôùï /extracao                            3.15 kB         103 kB
+Ôö£ Ôùï /grupos                              3.72 kB         110 kB
+Ôö£ Ôùï /landing                             8.79 kB         205 kB
+Ôö£ Ôùï /login                               149 B           204 kB
+Ôöö Ôùï /maps                                8.02 kB         168 kB
++ First Load JS shared by all            87 kB
+  Ôö£ chunks/23-a12d6039e9c77ca3.js        31.5 kB
+  Ôö£ chunks/fd9d1056-00bb33a35b5f8051.js  53.6 kB
+  Ôöö other shared chunks (total)          1.95 kB
+
+
+ãÆ Middleware                             27.4 kB
+
+Ôùï  (Static)   prerendered as static content
+ãÆ  (Dynamic)  server-rendered on demand
+
