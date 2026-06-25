@@ -29,6 +29,8 @@ type UserProfile = {
   created_at: string;
   campaigns_sent: number;
   leads_extracted: number;
+  templates_saved?: number;
+  campaigns_total?: number;
 };
 
 export default function AdminDashboard() {
@@ -117,8 +119,10 @@ export default function AdminDashboard() {
 
           let totalSent = 0;
           let totalLeads = 0;
+          let campaignsCount = 0;
+          let templatesCount = 0;
 
-          // Count campaigns sent (handle if table doesn't exist)
+          // Count campaigns and sent count
           try {
             const { data: campaigns } = await supabase
               .from('campaigns')
@@ -126,29 +130,31 @@ export default function AdminDashboard() {
               .eq('user_id', profile.id);
 
             totalSent = campaigns?.reduce((sum: number, c: any) => sum + (c.sent_count || 0), 0) || 0;
+            campaignsCount = campaigns?.length || 0;
           } catch (e) {
             console.warn('Campaigns table not accessible:', e);
           }
 
-          // Count leads extracted (from scraped_searches and map_searches)
+          // Count message templates
           try {
-            const { data: scraped } = await supabase
-              .from('scraped_searches')
-              .select('found_count')
+            const { count } = await supabase
+              .from('message_templates')
+              .select('id', { count: 'exact', head: true })
               .eq('user_id', profile.id);
-            totalLeads += scraped?.reduce((sum: number, s: any) => sum + (s.found_count || 0), 0) || 0;
+            templatesCount = count || 0;
           } catch (e) {
-            console.warn('scraped_searches table not accessible:', e);
+            console.warn('message_templates table not accessible:', e);
           }
 
+          // Count leads extracted (from scraped_leads which has scraped_searches inner join)
           try {
-            const { data: mapSearches } = await supabase
-              .from('map_searches')
-              .select('total_results')
-              .eq('user_id', profile.id);
-            totalLeads += mapSearches?.reduce((sum: number, s: any) => sum + (s.total_results || 0), 0) || 0;
+            const { data: leads } = await supabase
+              .from('scraped_leads')
+              .select('id, scraped_searches!inner(user_id)')
+              .eq('scraped_searches.user_id', profile.id);
+            totalLeads = leads?.length || 0;
           } catch (e) {
-            console.warn('map_searches table not accessible:', e);
+            console.warn('scraped_leads table not accessible:', e);
           }
 
           return {
@@ -160,8 +166,10 @@ export default function AdminDashboard() {
             last_access: profile.last_access,
             created_at: profile.created_at,
             campaigns_sent: totalSent,
-            leads_extracted: totalLeads
-          };
+            leads_extracted: totalLeads,
+            templates_saved: templatesCount,
+            campaigns_total: campaignsCount
+          } as UserProfile;
         })
       );
 
@@ -450,8 +458,9 @@ export default function AdminDashboard() {
                     <th className="text-left py-3 px-4 font-bold uppercase text-xs tracking-wider text-white">Role</th>
                     <th className="text-left py-3 px-4 font-bold uppercase text-xs tracking-wider text-white">Status</th>
                     <th className="text-left py-3 px-4 font-bold uppercase text-xs tracking-wider text-white">Último Acesso</th>
-                    <th className="text-left py-3 px-4 font-bold uppercase text-xs tracking-wider text-white">Disparos</th>
-                    <th className="text-left py-3 px-4 font-bold uppercase text-xs tracking-wider text-white">Leads</th>
+                    <th className="text-left py-3 px-4 font-bold uppercase text-xs tracking-wider text-white">Mensagens (Enviadas/Salvas)</th>
+                    <th className="text-left py-3 px-4 font-bold uppercase text-xs tracking-wider text-white">Campanhas</th>
+                    <th className="text-left py-3 px-4 font-bold uppercase text-xs tracking-wider text-white">Leads Extraídos</th>
                     <th className="text-left py-3 px-4 font-bold uppercase text-xs tracking-wider text-white">Ações</th>
                   </tr>
                 </thead>
@@ -480,7 +489,12 @@ export default function AdminDashboard() {
                       <td className="py-3 px-4 text-slate-600 text-xs">
                         {member.last_access ? new Date(member.last_access).toLocaleDateString('pt-BR') : 'Nunca'}
                       </td>
-                      <td className="py-3 px-4 font-bold text-slate-900 text-xs">{member.campaigns_sent}</td>
+                      <td className="py-3 px-4 font-bold text-slate-900 text-xs">
+                        {member.campaigns_sent} / {member.templates_saved || 0}
+                      </td>
+                      <td className="py-3 px-4 font-bold text-slate-900 text-xs">
+                        {member.campaigns_total || 0}
+                      </td>
                       <td className="py-3 px-4 font-bold text-slate-900 text-xs">{member.leads_extracted}</td>
                       <td className="py-3 px-4">
                         <div className="flex gap-1">

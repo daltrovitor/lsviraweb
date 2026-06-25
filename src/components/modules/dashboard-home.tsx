@@ -38,7 +38,16 @@ const QR_STEPS = [
 ];
 
 export function DashboardHomeModule() {
-  const [stats, setStats] = useState({ sent: 0, successRate: 100, extracted: 0, speed: 0 });
+  const [stats, setStats] = useState({
+    sent: 0,
+    successRate: 100,
+    extracted: 0,
+    speed: 0,
+    templatesSaved: 0,
+    campaignsTotal: 0,
+    campaignsActive: 0,
+    campaignsPaused: 0
+  });
   const [waStatus, setWaStatus] = useState<WhatsAppStatus>({ connected: false, state: 'disconnected' });
   const [activeCampaign, setActiveCampaign] = useState<Campaign | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -59,6 +68,10 @@ export function DashboardHomeModule() {
         .select('id, scraped_searches!inner(user_id)')
         .eq('scraped_searches.user_id', user.id);
 
+      const { count: templatesCount } = await supabase
+        .from('message_templates')
+        .select('id', { count: 'exact', head: true });
+
       const { data: campaigns } = await supabase
         .from('campaigns')
         .select('sent_count, error_count, status')
@@ -66,17 +79,27 @@ export function DashboardHomeModule() {
 
       let dbSent = 0;
       let dbError = 0;
+      let campaignsActive = 0;
+      let campaignsPaused = 0;
+
       campaigns?.forEach((c) => {
-        if (['completed', 'stopped', 'idle'].includes(c.status)) {
+        if (['completed', 'stopped', 'idle', 'draft'].includes(c.status)) {
           dbSent += c.sent_count || 0;
           dbError += c.error_count || 0;
         }
+        if (c.status === 'running') campaignsActive++;
+        if (c.status === 'paused') campaignsPaused++;
       });
 
       dbStatsRef.current = { sent: dbSent, error: dbError };
       const totalSent = dbSent + (activeCampaign?.stats.sent || 0);
       const totalError = dbError + (activeCampaign?.stats.error || 0);
       const totalAttempts = totalSent + totalError;
+
+      if (activeCampaign) {
+        if (activeCampaign.status === 'running') campaignsActive = 1;
+        if (activeCampaign.status === 'paused') campaignsPaused = 1;
+      }
 
       setStats({
         sent: totalSent,
@@ -86,6 +109,10 @@ export function DashboardHomeModule() {
           activeCampaign?.status === 'running'
             ? Math.round(60 / ((activeCampaign.delayMin + activeCampaign.delayMax) / 2))
             : 0,
+        templatesSaved: templatesCount || 0,
+        campaignsTotal: campaigns?.length || 0,
+        campaignsActive,
+        campaignsPaused
       });
     } catch (err) {
       console.error(err);
@@ -104,15 +131,31 @@ export function DashboardHomeModule() {
       const totalSent = dbStatsRef.current.sent + (camp?.stats?.sent || 0);
       const totalError = dbStatsRef.current.error + (camp?.stats?.error || 0);
       const totalAttempts = totalSent + totalError;
-      setStats((prev) => ({
-        ...prev,
-        sent: totalSent,
-        successRate: totalAttempts > 0 ? parseFloat(((totalSent / totalAttempts) * 100).toFixed(1)) : 100,
-        speed:
-          camp?.status === 'running' && camp?.delayMin !== undefined && camp?.delayMax !== undefined
-            ? Math.round(60 / ((camp.delayMin + camp.delayMax) / 2))
-            : 0,
-      }));
+      setStats((prev) => {
+        let active = prev.campaignsActive;
+        let paused = prev.campaignsPaused;
+        if (camp.status === 'running') {
+          active = 1;
+          paused = 0;
+        } else if (camp.status === 'paused') {
+          active = 0;
+          paused = 1;
+        } else {
+          active = 0;
+          paused = 0;
+        }
+        return {
+          ...prev,
+          sent: totalSent,
+          successRate: totalAttempts > 0 ? parseFloat(((totalSent / totalAttempts) * 100).toFixed(1)) : 100,
+          speed:
+            camp?.status === 'running' && camp?.delayMin !== undefined && camp?.delayMax !== undefined
+              ? Math.round(60 / ((camp.delayMin + camp.delayMax) / 2))
+              : 0,
+          campaignsActive: active,
+          campaignsPaused: paused
+        };
+      });
     };
 
     socket.on('whatsapp-status', onStatus);
@@ -127,10 +170,10 @@ export function DashboardHomeModule() {
   }, []);
 
   const statCards = [
-    { label: 'Enviadas', value: stats.sent.toLocaleString(), icon: Send },
-    { label: 'Sucesso', value: `${stats.successRate}%`, icon: CheckCircle2 },
-    { label: 'Leads', value: stats.extracted.toLocaleString(), icon: Users },
-    { label: 'Velocidade', value: stats.speed > 0 ? `${stats.speed}/min` : '—', icon: Zap },
+    { label: 'Msgs Enviadas / Salvas', value: `${stats.sent.toLocaleString()} / ${stats.templatesSaved}`, icon: Send },
+    { label: 'Campanhas (Ativas/Pausadas/Total)', value: `${stats.campaignsActive} / ${stats.campaignsPaused} / ${stats.campaignsTotal}`, icon: Zap },
+    { label: 'Leads Captados', value: stats.extracted.toLocaleString(), icon: Users },
+    { label: 'Taxa de Sucesso', value: `${stats.successRate}%`, icon: CheckCircle2 },
   ];
 
   const showQr = !waStatus.connected && waStatus.state === 'qrcode' && waStatus.qr;

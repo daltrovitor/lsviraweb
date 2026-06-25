@@ -29,7 +29,11 @@ export default function DashboardHome() {
     sent: 0,
     successRate: 100,
     extracted: 0,
-    speed: 0
+    speed: 0,
+    templatesSaved: 0,
+    campaignsTotal: 0,
+    campaignsActive: 0,
+    campaignsPaused: 0
   });
 
   const [waStatus, setWaStatus] = useState<WhatsAppStatus>({ connected: false, state: 'disconnected' });
@@ -56,6 +60,11 @@ export default function DashboardHome() {
         .eq('scraped_searches.user_id', user.id);
       const totalExtracted = leads?.length || 0;
 
+      // Buscar templates
+      const { count: templatesCount } = await supabase
+        .from('message_templates')
+        .select('id', { count: 'exact', head: true });
+
       // Buscar campanhas do usuário para calcular histórico de disparos
       const { data: campaigns } = await supabase
         .from('campaigns')
@@ -64,20 +73,27 @@ export default function DashboardHome() {
 
       let dbSent = 0;
       let dbError = 0;
+      let campaignsActive = 0;
+      let campaignsPaused = 0;
 
       if (campaigns) {
         campaigns.forEach(c => {
-          // Se a campanha já estiver concluída ou parada, adicionamos ao histórico estático
-          if (c.status === 'completed' || c.status === 'stopped' || c.status === 'idle') {
+          if (c.status === 'completed' || c.status === 'stopped' || c.status === 'idle' || c.status === 'draft') {
             dbSent += c.sent_count || 0;
             dbError += c.error_count || 0;
           }
+          if (c.status === 'running') campaignsActive++;
+          if (c.status === 'paused') campaignsPaused++;
         });
       }
 
       dbStatsRef.current = { sent: dbSent, error: dbError };
 
-      // Se não houver campanha ativa no Socket no momento, somamos tudo
+      if (activeCampaign) {
+        if (activeCampaign.status === 'running') campaignsActive = 1;
+        if (activeCampaign.status === 'paused') campaignsPaused = 1;
+      }
+
       const totalSent = dbSent + (activeCampaign?.stats.sent || 0);
       const totalError = dbError + (activeCampaign?.stats.error || 0);
       const totalAttempts = totalSent + totalError;
@@ -87,7 +103,11 @@ export default function DashboardHome() {
         sent: totalSent,
         successRate: successRate,
         extracted: totalExtracted,
-        speed: activeCampaign?.status === 'running' ? Math.round(60 / ((activeCampaign.delayMin + activeCampaign.delayMax) / 2)) : 0
+        speed: activeCampaign?.status === 'running' ? Math.round(60 / ((activeCampaign.delayMin + activeCampaign.delayMax) / 2)) : 0,
+        templatesSaved: templatesCount || 0,
+        campaignsTotal: campaigns?.length || 0,
+        campaignsActive,
+        campaignsPaused
       });
     } catch (err) {
       console.error('Erro ao buscar estatísticas reais:', err);
@@ -107,24 +127,38 @@ export default function DashboardHome() {
     const onCampaignUpdate = (camp: Campaign) => {
       setActiveCampaign(camp);
       
-      // Atualizar estatísticas combinando dados do banco com a campanha ativa
       const totalSent = dbStatsRef.current.sent + (camp?.stats?.sent || 0);
       const totalError = dbStatsRef.current.error + (camp?.stats?.error || 0);
       const totalAttempts = totalSent + totalError;
       const successRate = totalAttempts > 0 ? parseFloat(((totalSent / totalAttempts) * 100).toFixed(1)) : 100;
       
-      setStats(prev => ({
-        ...prev,
-        sent: totalSent,
-        successRate: successRate,
-        speed: camp.status === 'running' ? Math.round(60 / ((camp.delayMin + camp.delayMax) / 2)) : 0
-      }));
+      setStats(prev => {
+        let active = prev.campaignsActive;
+        let paused = prev.campaignsPaused;
+        if (camp.status === 'running') {
+          active = 1;
+          paused = 0;
+        } else if (camp.status === 'paused') {
+          active = 0;
+          paused = 1;
+        } else {
+          active = 0;
+          paused = 0;
+        }
+        return {
+          ...prev,
+          sent: totalSent,
+          successRate: successRate,
+          speed: camp.status === 'running' ? Math.round(60 / ((camp.delayMin + camp.delayMax) / 2)) : 0,
+          campaignsActive: active,
+          campaignsPaused: paused
+        };
+      });
     };
 
     socket.on('whatsapp-status', onStatus);
     socket.on('campaign-update', onCampaignUpdate);
     
-    // Solicitar status inicial
     socket.emit('get-whatsapp-status');
     socket.emit('get-campaign-status');
 
@@ -135,10 +169,10 @@ export default function DashboardHome() {
   }, []);
 
   const statCards = [
-    { label: 'Mensagens Enviadas', value: stats.sent.toLocaleString(), icon: Send, color: 'bg-v-blue-400/10 text-v-blue-500 border-v-blue-400/20' },
-    { label: 'Taxa de Sucesso', value: `${stats.successRate}%`, icon: CheckCircle2, color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+    { label: 'Msgs Enviadas / Salvas', value: `${stats.sent.toLocaleString()} / ${stats.templatesSaved}`, icon: Send, color: 'bg-v-blue-400/10 text-v-blue-500 border-v-blue-400/20' },
+    { label: 'Campanhas (Ativas/Pausadas/Total)', value: `${stats.campaignsActive} / ${stats.campaignsPaused} / ${stats.campaignsTotal}`, icon: Zap, color: 'bg-navy-50 text-navy-900 border-navy-200' },
     { label: 'Leads Extraídos', value: stats.extracted.toLocaleString(), icon: Users, color: 'bg-gold-400/10 text-gold-500 border-gold-400/20' },
-    { label: 'Velocidade Ativa', value: stats.speed > 0 ? `${stats.speed}/min` : 'Inativo', icon: Zap, color: 'bg-navy-50 text-navy-900 border-navy-200' },
+    { label: 'Taxa de Sucesso', value: `${stats.successRate}%`, icon: CheckCircle2, color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
   ];
 
   return (

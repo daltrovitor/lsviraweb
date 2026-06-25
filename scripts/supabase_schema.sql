@@ -45,6 +45,7 @@ create trigger on_auth_user_created
 create table if not exists public.campaigns (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
+  name text,
   message text not null,
   delay_min integer default 15,
   delay_max integer default 45,
@@ -155,3 +156,19 @@ create policy "Users can upload media"
 create policy "Users can view own media"
   on storage.objects for select
   using (bucket_id = 'media');
+
+-- MESSAGE TEMPLATES
+create table if not exists public.message_templates (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  name text not null,
+  content text not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.message_templates enable row level security;
+
+create policy "Users can manage own templates"
+  on message_templates for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);

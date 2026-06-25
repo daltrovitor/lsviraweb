@@ -112,6 +112,7 @@ export class CampaignService extends EventEmitter {
       await supabase.from('campaigns').upsert({
         id: this.campaign.id || undefined,
         user_id: this.userId,
+        name: this.campaign.name || 'Campanha sem nome',
         message: this.campaign.message,
         contacts: this.campaign.contacts,
         delay_min: this.campaign.delayMin,

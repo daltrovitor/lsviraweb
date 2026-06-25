@@ -54,8 +54,17 @@ export interface AutomationSettings {
   timezone?: string;
 }
 
+export interface MessageTemplate {
+  id: string;
+  user_id: string;
+  name: string;
+  content: string;
+  created_at: string;
+}
+
 export interface Campaign {
   id: string;
+  name?: string;
   message: string;
   contacts: Contact[];
   delayMin: number;
