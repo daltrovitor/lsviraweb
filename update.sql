@@ -10,11 +10,23 @@ ALTER TABLE public.campaigns ADD COLUMN IF NOT EXISTS name TEXT;
 -- Adiciona a coluna 'contacts' se não existir
 ALTER TABLE public.campaigns ADD COLUMN IF NOT EXISTS contacts JSONB NOT NULL DEFAULT '[]'::jsonb;
 
+-- Adiciona a coluna 'delay_min' se não existir
+ALTER TABLE public.campaigns ADD COLUMN IF NOT EXISTS delay_min INTEGER DEFAULT 5;
+
+-- Adiciona a coluna 'delay_max' se não existir
+ALTER TABLE public.campaigns ADD COLUMN IF NOT EXISTS delay_max INTEGER DEFAULT 15;
+
+-- Adiciona a coluna 'status' se não existir
+ALTER TABLE public.campaigns ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'idle';
+
 -- Adiciona a coluna 'automation' se não existir
 ALTER TABLE public.campaigns ADD COLUMN IF NOT EXISTS automation JSONB DEFAULT '{}'::jsonb;
 
 -- Adiciona a coluna 'stats' se não existir
 ALTER TABLE public.campaigns ADD COLUMN IF NOT EXISTS stats JSONB DEFAULT '{"sent": 0, "error": 0, "total": 0, "pending": 0}'::jsonb;
+
+-- Adiciona a coluna 'scheduled_at' se não existir
+ALTER TABLE public.campaigns ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMP WITH TIME ZONE;
 
 -- 2. Criação da tabela de Templates de Mensagem (message_templates)
 CREATE TABLE IF NOT EXISTS public.message_templates (
