@@ -131,6 +131,11 @@ export const setupSockets = (io: Server) => {
       campaignManager.getService(currentUserId).stop();
     });
 
+    socket.on('clear-campaign', () => {
+      if (!currentUserId) return;
+      campaignManager.getService(currentUserId).clearCampaign();
+    });
+
     socket.on('get-groups', async (callback) => {
       if (!currentUserId) return callback && callback({ success: false, error: 'Não registrado' });
       try {

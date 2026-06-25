@@ -415,6 +415,10 @@ export function DisparosModule() {
       if (error) throw error;
 
       toast.success('Campanha excluída!');
+      if (selectedCampaignId === campaign?.id) {
+        socket.emit('clear-campaign');
+        setCampaign(null);
+      }
       setCampaigns(prev => prev.filter(c => c.id !== selectedCampaignId));
       setSelectedCampaignId('');
     } catch (err: any) {
@@ -759,6 +763,19 @@ export function DisparosModule() {
                     <p className="text-xl font-black text-red-400">{campaign.stats.error}</p>
                   </div>
                 </div>
+                {['completed', 'stopped'].includes(campaign.status) && (
+                  <Button
+                    variant="outline"
+                    fullWidth
+                    className="mt-4 border-white/20 text-white hover:bg-white/10"
+                    onClick={() => {
+                      socket.emit('clear-campaign');
+                      setCampaign(null);
+                    }}
+                  >
+                    Concluir e Limpar Painel
+                  </Button>
+                )}
               </div>
             )}
           </Card>

@@ -299,6 +299,11 @@ export class CampaignService extends EventEmitter {
     }
     this.emit('stopped');
   }
+
+  public clearCampaign() {
+    this.campaign = null;
+    this.emit('update', this.userId, null);
+  }
 }
 
 class CampaignManager extends EventEmitter {

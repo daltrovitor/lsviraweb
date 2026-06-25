@@ -7,6 +7,9 @@
 -- Adiciona a coluna 'name' se não existir
 ALTER TABLE public.campaigns ADD COLUMN IF NOT EXISTS name TEXT;
 
+-- Adiciona a coluna 'contacts' se não existir
+ALTER TABLE public.campaigns ADD COLUMN IF NOT EXISTS contacts JSONB NOT NULL DEFAULT '[]'::jsonb;
+
 -- Adiciona a coluna 'automation' se não existir
 ALTER TABLE public.campaigns ADD COLUMN IF NOT EXISTS automation JSONB DEFAULT '{}'::jsonb;
 
