@@ -75,6 +75,19 @@ export function ChatbotSettingsModule() {
     loadGeneralSteps();
     loadCampaigns();
     loadSessions();
+
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const tabParam = searchParams.get('tab');
+      const campaignIdParam = searchParams.get('campaignId');
+
+      if (tabParam === 'chatbot' || campaignIdParam) {
+        setSubTab('campanha');
+        if (campaignIdParam) {
+          setSelectedCampaignId(campaignIdParam);
+        }
+      }
+    }
   }, []);
 
   // Recarregar passos quando mudar a campanha selecionada

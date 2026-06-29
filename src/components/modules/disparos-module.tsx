@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Send, Users, Phone, Upload, Play, Pause, Square, MapPin, Loader2, Plus, Trash2, Save, Download } from 'lucide-react';
+import { Send, Users, Phone, Upload, Play, Pause, Square, MapPin, Loader2, Plus, Trash2, Save, Download, MessageSquare } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { socket } from '@/services/socket';
 import { supabase } from '@/lib/supabase';
@@ -524,7 +524,13 @@ export function DisparosModule() {
             </div>
 
             {selectedCampaignId && (
-              <div className="mt-4 flex justify-end gap-2 border-t border-slate-100 pt-3">
+              <div className="mt-4 flex flex-wrap gap-2 justify-between items-center border-t border-slate-100 pt-3">
+                <a
+                  href={`/automacao?tab=chatbot&campaignId=${selectedCampaignId}`}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-semibold bg-navy-900 text-gold-400 border border-navy-800 hover:bg-navy-800 transition-all shadow-sm"
+                >
+                  <MessageSquare size={13} className="text-gold-500" /> Configurar Roteiro do Bot
+                </a>
                 <Button variant="outline" className="py-1.5 px-3.5 text-xs rounded-xl" onClick={saveCampaignAsDraft}>
                   <Save size={14} className="mr-1.5" /> Salvar Rascunho
                 </Button>

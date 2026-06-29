@@ -127,17 +127,21 @@ export class WhatsAppService extends EventEmitter {
       }
 
       if (connection === 'close') {
-        const shouldReconnect = (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
+        const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
+        const shouldReconnect = statusCode !== DisconnectReason.loggedOut && statusCode !== 401;
         this.status = { connected: false, state: 'disconnected' };
         this.emit('status', this.userId, this.status);
         
         if (shouldReconnect) {
-          this.init();
+          console.log(`[WhatsApp ${this.userId}] Conexão fechada. Tentando reconectar em 5 segundos...`);
+          setTimeout(() => {
+            this.init();
+          }, 5000);
         } else {
+          console.log(`[WhatsApp ${this.userId}] Sessão encerrada (Logout ou Não Autorizado). Limpando pasta de sessão.`);
           if (fs.existsSync(this.sessionPath)) {
             fs.rmSync(this.sessionPath, { recursive: true, force: true });
           }
-          this.init();
         }
       } else if (connection === 'open') {
         const user = this.socket?.user;
