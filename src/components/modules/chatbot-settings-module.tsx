@@ -681,12 +681,12 @@ export function ChatbotSettingsModule() {
                       </td>
                       <td className="py-4 px-4">
                         {session.status === 'HUMANO' && (
-                          <Badge variant="secondary" className="bg-red-50 text-red-700 border-red-200">
+                          <Badge variant="error">
                             🤝 Atend. Humano
                           </Badge>
                         )}
                         {session.status === 'GERAL' && (
-                          <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">
+                          <Badge variant="live">
                             🤖 Bot Geral (FAQ)
                           </Badge>
                         )}
