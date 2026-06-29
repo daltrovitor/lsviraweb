@@ -152,6 +152,52 @@ export class WhatsAppService extends EventEmitter {
     });
 
     this.socket.ev.on('creds.update', saveCreds);
+
+    // ponytail: Intercept incoming direct messages and trigger the webhook
+    this.socket.ev.on('messages.upsert', async ({ messages, type }) => {
+      if (type !== 'notify') return;
+      for (const msg of messages) {
+        if (!msg || msg.key?.fromMe) continue;
+        const jid = msg.key?.remoteJid;
+        if (!jid || jid.endsWith('@g.us')) continue; // Direct messages only
+
+        const messageText = msg.message?.conversation || 
+                            msg.message?.extendedTextMessage?.text || 
+                            msg.message?.buttonsResponseMessage?.selectedButtonId || 
+                            msg.message?.listResponseMessage?.singleSelectReply?.selectedRowId || 
+                            '';
+
+        if (!messageText.trim()) continue;
+
+        const sender = jid.split('@')[0];
+        const pushName = msg.pushName || '';
+
+        console.log(`[WhatsApp ${this.userId}] Mensagem recebida de ${sender}: "${messageText}"`);
+
+        try {
+          const webhookUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/api/webhook`;
+          
+          await fetch(webhookUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': process.env.SUPABASE_SERVICE_KEY || ''
+            },
+            body: JSON.stringify({
+              userId: this.userId,
+              sender,
+              message: messageText,
+              pushName,
+              messageId: msg.key.id,
+              jid
+            })
+          });
+        } catch (webhookErr: any) {
+          console.error(`[WhatsApp Webhook Error] Falha ao enviar para o webhook:`, webhookErr.message);
+        }
+      }
+    });
+
     return this.socket;
   }
 
@@ -258,3 +304,4 @@ class WhatsAppManager extends EventEmitter {
 }
 
 export const whatsappManager = new WhatsAppManager();
+(global as any).whatsappManager = whatsappManager;

@@ -251,6 +251,16 @@ export class CampaignService extends EventEmitter {
         this.campaign.stats.pending--;
         runSentCount++;
         this.sentTimestamps.push(Date.now());
+
+        // ponytail: Save delivery record for chatbot routing
+        if (supabase) {
+          const cleanPhone = contact.number.replace(/\D/g, '');
+          await supabase.from('campaign_deliveries').insert({
+            user_id: this.userId,
+            campaign_id: this.campaign.id,
+            customer_phone: cleanPhone
+          }).catch((err: any) => console.error('Erro ao salvar entrega da campanha:', err.message));
+        }
       } catch (error: any) {
         contact.status = 'error';
         contact.error = error.message;

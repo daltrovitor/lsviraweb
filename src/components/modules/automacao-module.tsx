@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Settings2, Sliders, Calendar, Check, Sparkles, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Settings2, Sliders, Calendar, Check, Sparkles, ShieldCheck, AlertTriangle, Bot } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AutomationSettings } from '@/types';
 import { DEFAULT_AUTOMATION, loadAutomationFromStorage, saveAutomationToStorage } from '@/lib/automation-storage';
@@ -10,10 +10,12 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ChatbotSettingsModule } from './chatbot-settings-module';
 
 const DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'];
 
 export function AutomacaoModule() {
+  const [tab, setTab] = useState<'envios' | 'chatbot'>('envios');
   const [automation, setAutomation] = useState<AutomationSettings>(DEFAULT_AUTOMATION);
   const [toast, setToast] = useState(false);
 
@@ -79,129 +81,165 @@ export function AutomacaoModule() {
       </AnimatePresence>
 
       <PageHeader
-        title="Automação avançada"
-        description="Limites, horários e simulação humana para proteger seu número."
+        title={tab === 'envios' ? "Automação avançada" : "Roteamento de Chatbot"}
+        description={tab === 'envios' ? "Limites, horários e simulação humana para proteger seu número." : "Gerencie roteiros de respostas automáticas de campanhas e regras do bot receptivo."}
         action={
-          <div className="flex gap-2">
-            <Badge variant="gold">Anti-Ban</Badge>
-            <Button variant="secondary" onClick={applyPreset}>
-              <Sparkles size={16} />
-              Preset seguro
-            </Button>
-          </div>
+          tab === 'envios' ? (
+            <div className="flex gap-2">
+              <Badge variant="gold">Anti-Ban</Badge>
+              <Button variant="secondary" onClick={applyPreset}>
+                <Sparkles size={16} />
+                Preset seguro
+              </Button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Badge variant="gold">Auto-Responder</Badge>
+            </div>
+          )
         }
       />
 
-      <div className="space-y-6">
-        <Card glow>
-          <CardTitle className="flex items-center gap-2 mb-6">
-            <Sliders className="text-gold-500" size={20} />
-            Horários & cadência
-          </CardTitle>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-            {fields.map((item) => (
-              <div key={item.field} className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-bold text-slate-500 uppercase">{item.label}</label>
-                <input
-                  type={item.type}
-                  value={automation[item.field] as string | number}
-                  onChange={(e) =>
-                    update(
-                      item.field,
-                      item.type === 'number' ? Number(e.target.value) : e.target.value
-                    )
-                  }
-                  className="rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm font-bold text-navy-950 focus:ring-2 focus:ring-v-blue-500/25 focus:outline-none"
-                />
-              </div>
-            ))}
-          </div>
+      {/* Tabs de Controle Superior */}
+      <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200/80 mb-6 max-w-md">
+        <button
+          type="button"
+          onClick={() => setTab('envios')}
+          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            tab === 'envios' 
+              ? 'bg-white shadow-sm text-navy-950' 
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          Envios & Limites (Anti-Ban)
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('chatbot')}
+          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            tab === 'chatbot' 
+              ? 'bg-white shadow-sm text-navy-950' 
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          Configurações de Chatbot
+        </button>
+      </div>
 
-          <div className="flex flex-col lg:flex-row gap-8 pt-6 border-t border-slate-100">
-            <div className="flex-1">
-              <p className="text-[11px] font-bold text-slate-500 uppercase mb-3 flex items-center gap-1">
-                <Calendar size={14} /> Dias ativos
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {DIAS.map((dia) => {
-                  const active = automation.diasAtivos.includes(dia);
-                  return (
+      {tab === 'envios' ? (
+        <div className="space-y-6">
+          <Card glow>
+            <CardTitle className="flex items-center gap-2 mb-6">
+              <Sliders className="text-gold-500" size={20} />
+              Horários & cadência
+            </CardTitle>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+              {fields.map((item) => (
+                <div key={item.field} className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold text-slate-500 uppercase">{item.label}</label>
+                  <input
+                    type={item.type}
+                    value={automation[item.field] as string | number}
+                    onChange={(e) =>
+                      update(
+                        item.field,
+                        item.type === 'number' ? Number(e.target.value) : e.target.value
+                      )
+                    }
+                    className="rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm font-bold text-navy-950 focus:ring-2 focus:ring-v-blue-500/25 focus:outline-none"
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-col lg:flex-row gap-8 pt-6 border-t border-slate-100">
+              <div className="flex-1">
+                <p className="text-[11px] font-bold text-slate-500 uppercase mb-3 flex items-center gap-1">
+                  <Calendar size={14} /> Dias ativos
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {DIAS.map((dia) => {
+                    const active = automation.diasAtivos.includes(dia);
+                    return (
+                      <button
+                        key={dia}
+                        type="button"
+                        onClick={() => toggleDia(dia)}
+                        className={`px-4 py-2.5 rounded-xl text-sm font-bold border transition-all ${
+                          active
+                            ? 'bg-navy-900 text-gold-400 border-navy-900'
+                            : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        {dia}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-slate-500 uppercase mb-3">Velocidade</p>
+                <div className="inline-flex bg-slate-50 p-1 rounded-2xl border border-slate-200">
+                  {(['Lenta', 'Media', 'Rapida'] as const).map((vel) => (
                     <button
-                      key={dia}
+                      key={vel}
                       type="button"
-                      onClick={() => toggleDia(dia)}
-                      className={`px-4 py-2.5 rounded-xl text-sm font-bold border transition-all ${
-                        active
-                          ? 'bg-navy-900 text-gold-400 border-navy-900'
-                          : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                      onClick={() => update('velocidade', vel)}
+                      className={`px-4 py-2.5 rounded-xl text-sm font-bold ${
+                        automation.velocidade === vel ? 'bg-white shadow-sm text-navy-950' : 'text-slate-500'
                       }`}
                     >
-                      {dia}
+                      {vel}
                     </button>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
             </div>
-            <div>
-              <p className="text-[11px] font-bold text-slate-500 uppercase mb-3">Velocidade</p>
-              <div className="inline-flex bg-slate-50 p-1 rounded-2xl border border-slate-200">
-                {(['Lenta', 'Media', 'Rapida'] as const).map((vel) => (
-                  <button
-                    key={vel}
-                    type="button"
-                    onClick={() => update('velocidade', vel)}
-                    className={`px-4 py-2.5 rounded-xl text-sm font-bold ${
-                      automation.velocidade === vel ? 'bg-white shadow-sm text-navy-950' : 'text-slate-500'
-                    }`}
-                  >
-                    {vel}
-                  </button>
-                ))}
-              </div>
+          </Card>
+
+          <Card glow className="relative overflow-hidden">
+            <ShieldCheck className="absolute top-4 right-4 text-slate-100" size={100} />
+            <CardTitle className="flex items-center gap-2 mb-6 relative z-10">
+              <ShieldCheck className="text-emerald-500" size={20} />
+              Anti-ban
+            </CardTitle>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 relative z-10">
+              {(
+                [
+                  ['pauseEveryX', 'Pausa a cada (msgs)', 1],
+                  ['pauseDurationMin', 'Pausa mín (min)', 1],
+                  ['pauseDurationMax', 'Pausa máx (min)', 1],
+                  ['fatigue', 'Fadiga', 0.1],
+                ] as const
+              ).map(([field, label, step]) => (
+                <div key={field}>
+                  <label className="text-[11px] font-bold text-slate-500 uppercase">{label}</label>
+                  <input
+                    type="number"
+                    step={step}
+                    value={automation[field]}
+                    onChange={(e) => update(field, Number(e.target.value))}
+                    className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-v-blue-500/25 focus:outline-none"
+                  />
+                </div>
+              ))}
             </div>
-          </div>
-        </Card>
+            <div className="relative z-10 flex gap-3 p-4 rounded-2xl bg-amber-50 border border-amber-100">
+              <AlertTriangle className="text-amber-600 shrink-0" size={22} />
+              <p className="text-sm text-amber-800 font-medium leading-relaxed">
+                Intervalos variáveis e pausas simulam comportamento humano e reduzem risco de bloqueio no WhatsApp.
+              </p>
+            </div>
+          </Card>
 
-        <Card glow className="relative overflow-hidden">
-          <ShieldCheck className="absolute top-4 right-4 text-slate-100" size={100} />
-          <CardTitle className="flex items-center gap-2 mb-6 relative z-10">
-            <ShieldCheck className="text-emerald-500" size={20} />
-            Anti-ban
-          </CardTitle>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 relative z-10">
-            {(
-              [
-                ['pauseEveryX', 'Pausa a cada (msgs)', 1],
-                ['pauseDurationMin', 'Pausa mín (min)', 1],
-                ['pauseDurationMax', 'Pausa máx (min)', 1],
-                ['fatigue', 'Fadiga', 0.1],
-              ] as const
-            ).map(([field, label, step]) => (
-              <div key={field}>
-                <label className="text-[11px] font-bold text-slate-500 uppercase">{label}</label>
-                <input
-                  type="number"
-                  step={step}
-                  value={automation[field]}
-                  onChange={(e) => update(field, Number(e.target.value))}
-                  className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white/80 px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-v-blue-500/25 focus:outline-none"
-                />
-              </div>
-            ))}
-          </div>
-          <div className="relative z-10 flex gap-3 p-4 rounded-2xl bg-amber-50 border border-amber-100">
-            <AlertTriangle className="text-amber-600 shrink-0" size={22} />
-            <p className="text-sm text-amber-800 font-medium leading-relaxed">
-              Intervalos variáveis e pausas simulam comportamento humano e reduzem risco de bloqueio no WhatsApp.
-            </p>
-          </div>
-        </Card>
-
-        <Button variant="primary" fullWidth className="py-4 text-base" onClick={handleSave}>
-          <Settings2 size={20} className="text-gold-400" />
-          Salvar parâmetros
-        </Button>
-      </div>
+          <Button variant="primary" fullWidth className="py-4 text-base" onClick={handleSave}>
+            <Settings2 size={20} className="text-gold-400" />
+            Salvar parâmetros
+          </Button>
+        </div>
+      ) : (
+        <ChatbotSettingsModule />
+      )}
     </div>
   );
 }
