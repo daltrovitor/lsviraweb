@@ -180,6 +180,25 @@ export class CampaignService extends EventEmitter {
     let runSentCount = 0;
     const userWhatsApp = whatsappManager.getService(this.userId);
 
+    // Wait for WhatsApp connection (up to 30 attempts, 60 seconds)
+    let attempts = 0;
+    while (!userWhatsApp.getStatus().connected && attempts < 30) {
+      if (this.isStopped) return;
+      this.emit('log', this.userId, `⏳ Aguardando conexão do WhatsApp para iniciar os disparos...`);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      attempts++;
+    }
+
+    if (!userWhatsApp.getStatus().connected) {
+      this.emit('log', this.userId, `❌ Falha ao iniciar: WhatsApp não está conectado.`);
+      this.campaign.status = 'paused';
+      this.emit('update', this.userId, this.campaign);
+      await this.saveCampaignToDb();
+      return;
+    }
+
+    this.emit('log', this.userId, `✅ WhatsApp conectado! Iniciando disparos...`);
+
     for (let i = 0; i < this.campaign.contacts.length; i++) {
       if (this.isStopped) break;
 
@@ -300,6 +319,12 @@ export class CampaignService extends EventEmitter {
     this.emit('stopped');
   }
 
+  public loadCampaignInMemory(campaign: Campaign) {
+    this.campaign = campaign;
+    this.isPaused = true;
+    this.isStopped = false;
+  }
+
   public clearCampaign() {
     this.campaign = null;
     this.emit('update', this.userId, null);
@@ -322,13 +347,14 @@ class CampaignManager extends EventEmitter {
   public async resumeAllScheduledCampaigns() {
     if (!supabase) return;
     try {
-      const { data, error } = await supabase.from('campaigns').select('*').eq('status', 'scheduled');
+      const { data, error } = await supabase.from('campaigns').select('*').in('status', ['scheduled', 'running', 'paused']);
       if (error || !data) return;
 
       for (const row of data) {
         if (!row.user_id) continue;
         const camp: Campaign = {
           id: row.id,
+          name: row.name,
           message: row.message,
           contacts: row.contacts,
           delayMin: row.delay_min,
@@ -339,7 +365,14 @@ class CampaignManager extends EventEmitter {
           scheduledAt: row.scheduled_at
         };
         const service = this.getService(row.user_id);
-        service.startCampaign(camp).catch(err => console.error(err));
+        
+        if (camp.status === 'scheduled' || camp.status === 'running') {
+          // Retomar campanha agendada ou que estava executando no momento do reinício
+          service.startCampaign(camp).catch(err => console.error(err));
+        } else if (camp.status === 'paused') {
+          // Carregar campanha pausada na memória
+          service.loadCampaignInMemory(camp);
+        }
       }
     } catch (err: any) {}
   }

@@ -7,6 +7,20 @@
 -- Adiciona a coluna 'name' se não existir
 ALTER TABLE public.campaigns ADD COLUMN IF NOT EXISTS name TEXT;
 
+-- Remove a restrição NOT NULL da coluna 'title' se ela existir, evitando erros ao salvar campanha
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 
+    FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+      AND table_name = 'campaigns' 
+      AND column_name = 'title'
+  ) THEN
+    ALTER TABLE public.campaigns ALTER COLUMN title DROP NOT NULL;
+  END IF;
+END $$;
+
 -- Adiciona a coluna 'contacts' se não existir
 ALTER TABLE public.campaigns ADD COLUMN IF NOT EXISTS contacts JSONB NOT NULL DEFAULT '[]'::jsonb;
 

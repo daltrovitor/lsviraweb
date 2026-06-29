@@ -159,25 +159,42 @@ export class WhatsAppService extends EventEmitter {
   public async sendMessage(number: string, message: string) {
     if (!this.socket || !this.status.connected) throw new Error('WhatsApp not connected');
 
-    let jid = number.includes('@') ? number : '';
-    if (!jid) {
-      const cleanNumber = number.replace(/\D/g, '');
-      if (cleanNumber.startsWith('1') && cleanNumber.length >= 15) {
-        jid = `${cleanNumber}@lid`;
-      } else {
-        try {
-          const onWhatsAppResult = await this.socket.onWhatsApp(cleanNumber);
-          if (onWhatsAppResult && onWhatsAppResult.length > 0) {
-            jid = onWhatsAppResult[0].exists ? onWhatsAppResult[0].jid : `${cleanNumber}@s.whatsapp.net`;
-          } else {
+    const sendPromise = (async () => {
+      let jid = number.includes('@') ? number : '';
+      if (!jid) {
+        const cleanNumber = number.replace(/\D/g, '');
+        if (cleanNumber.startsWith('1') && cleanNumber.length >= 15) {
+          jid = `${cleanNumber}@lid`;
+        } else {
+          try {
+            // onWhatsApp com timeout de 8 segundos
+            const onWhatsAppResult = await Promise.race([
+              this.socket.onWhatsApp(cleanNumber),
+              new Promise<any[]>((_, reject) => setTimeout(() => reject(new Error('onWhatsApp timeout')), 8000))
+            ]);
+            if (onWhatsAppResult && onWhatsAppResult.length > 0) {
+              jid = onWhatsAppResult[0].exists ? onWhatsAppResult[0].jid : `${cleanNumber}@s.whatsapp.net`;
+            } else {
+              jid = `${cleanNumber}@s.whatsapp.net`;
+            }
+          } catch (e) {
             jid = `${cleanNumber}@s.whatsapp.net`;
           }
-        } catch (e) {
-          jid = `${cleanNumber}@s.whatsapp.net`;
         }
       }
-    }
-    await this.socket.sendMessage(jid, { text: message });
+      
+      // sendMessage com timeout de 15 segundos
+      await Promise.race([
+        this.socket.sendMessage(jid, { text: message }),
+        new Promise<any>((_, reject) => setTimeout(() => reject(new Error('sendMessage timeout')), 15000))
+      ]);
+    })();
+
+    // Operação inteira de envio com timeout global de 25 segundos
+    await Promise.race([
+      sendPromise,
+      new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Send operation timeout')), 25000))
+    ]);
   }
 
   public async getGroups() {
