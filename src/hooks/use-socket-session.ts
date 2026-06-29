@@ -13,13 +13,27 @@ export function useSocketSession(user: User | null) {
 
     connectSocket();
 
-    const register = () => {
-      socket.emit('register', user.id);
+    const register = async () => {
+      let token: string | undefined;
+      try {
+        const { supabase } = await import('@/lib/supabase');
+        if (supabase) {
+          const { data: { session } } = await supabase.auth.getSession();
+          token = session?.access_token;
+        }
+      } catch (err) {
+        console.error('Error fetching session token for socket:', err);
+      }
+      socket.emit('register', { userId: user.id, token });
     };
 
-    const onConnect = () => register();
+    const onConnect = () => {
+      register();
+    };
 
-    if (socket.connected) register();
+    if (socket.connected) {
+      register();
+    }
     socket.on('connect', onConnect);
 
     return () => {

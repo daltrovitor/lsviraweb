@@ -3,6 +3,7 @@ import { whatsappManager } from '../services/whatsapp';
 import { campaignManager } from '../services/campaign';
 import { Campaign } from '../types';
 import { mapsScraperManager } from '../services/maps-scraper';
+import { supabaseAdmin } from '../utils/supabase';
 
 export const setupSockets = (io: Server) => {
   io.on('connection', (socket) => {
@@ -10,7 +11,41 @@ export const setupSockets = (io: Server) => {
     console.log('Cliente conectado:', socket.id);
 
     // Registro do Socket ao Usuário
-    socket.on('register', (userId: string) => {
+    socket.on('register', async (data: any) => {
+      let userId: string;
+      let token: string | undefined;
+
+      if (typeof data === 'string') {
+        userId = data;
+      } else if (data && typeof data === 'object') {
+        userId = data.userId;
+        token = data.token;
+      } else {
+        return socket.emit('error', 'Formato de registro inválido');
+      }
+
+      if (token && supabaseAdmin) {
+        try {
+          const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+          if (error || !user) {
+            console.error(`[Socket Auth] Token inválido para tentativa de registro do usuário ${userId}`);
+            return socket.emit('error', 'Sessão inválida ou expirada');
+          }
+          if (user.id !== userId) {
+            console.error(`[Socket Auth] Incompatibilidade de ID de usuário: Token=${user.id}, Enviado=${userId}`);
+            return socket.emit('error', 'Acesso não autorizado');
+          }
+        } catch (err: any) {
+          console.error('[Socket Auth] Erro ao validar token:', err.message);
+          return socket.emit('error', 'Falha na validação de autenticação');
+        }
+      } else if (process.env.NODE_ENV === 'production') {
+        console.error(`[Socket Auth] Registro sem token recusado em produção para usuário ${userId}`);
+        return socket.emit('error', 'Autenticação necessária');
+      } else {
+        console.warn(`[Socket Auth] Registro de usuário ${userId} sem token (Permitido em modo desenvolvimento)`);
+      }
+
       console.log(`Socket ${socket.id} registrado para usuário: ${userId}`);
       currentUserId = userId;
       

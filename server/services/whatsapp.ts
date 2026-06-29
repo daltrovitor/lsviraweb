@@ -28,9 +28,12 @@ const makeInMemoryStore = (config?: { logger?: any }) => {
         }
       } catch (e) {}
     },
-    writeToFile(filePath: string) {
+    async writeToFile(filePath: string) {
       try {
-        fs.writeFileSync(filePath, JSON.stringify({ contacts }, null, 2), 'utf8');
+        const tempPath = filePath + '.tmp';
+        const data = JSON.stringify({ contacts }, null, 2);
+        await fs.promises.writeFile(tempPath, data, 'utf8');
+        await fs.promises.rename(tempPath, filePath);
       } catch (e) {}
     },
     bind(ev: any) {
