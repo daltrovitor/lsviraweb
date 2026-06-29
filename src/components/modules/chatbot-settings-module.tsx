@@ -111,6 +111,7 @@ export function ChatbotSettingsModule() {
   // --- CARREGAMENTO DE DADOS ---
 
   const loadGeneralSteps = async () => {
+    if (!supabase) return;
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -130,6 +131,7 @@ export function ChatbotSettingsModule() {
   };
 
   const loadCampaigns = async () => {
+    if (!supabase) return;
     try {
       const { data, error } = await supabase
         .from('campaigns')
@@ -147,6 +149,7 @@ export function ChatbotSettingsModule() {
   };
 
   const loadCampaignSteps = async (campaignId: string) => {
+    if (!supabase) return;
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -167,6 +170,7 @@ export function ChatbotSettingsModule() {
   };
 
   const loadSessions = async () => {
+    if (!supabase) return;
     try {
       // Buscar sessões com nome da campanha se associada
       const { data, error } = await supabase
@@ -194,6 +198,7 @@ export function ChatbotSettingsModule() {
   // --- INTERAÇÕES DE SESSÃO ---
 
   const handleUpdateSessionStatus = async (sessionId: string, newStatus: 'GERAL' | 'HUMANO' | 'CAMPANHA_PENDENTE') => {
+    if (!supabase) return;
     try {
       setLoading(true);
       const updateData: any = { status: newStatus };
@@ -217,6 +222,7 @@ export function ChatbotSettingsModule() {
   };
 
   const handleDeleteSession = async (sessionId: string) => {
+    if (!supabase) return;
     if (!confirm('Deseja realmente excluir esta sessão?')) return;
     try {
       setLoading(true);
@@ -263,6 +269,7 @@ export function ChatbotSettingsModule() {
   };
 
   const handleDeleteStep = async (stepId: string) => {
+    if (!supabase) return;
     if (!confirm('Deseja realmente excluir este passo do bot?')) return;
     try {
       setLoading(true);
@@ -288,6 +295,7 @@ export function ChatbotSettingsModule() {
   };
 
   const handleSaveStep = async () => {
+    if (!supabase) return;
     if (!stepKeyInput.trim()) return alert('A chave do passo é obrigatória.');
     if (!messageTextInput.trim()) return alert('O texto da mensagem é obrigatório.');
 

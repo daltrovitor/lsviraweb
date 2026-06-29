@@ -1,6 +1,20 @@
 -- SQL Migration: Chatbot Híbrido Tables
 -- Executar no Query Editor do Supabase
 
+-- Ajuste na tabela de campanhas (garante que a coluna 'title' permita valores nulos se existir)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 
+    FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+      AND table_name = 'campaigns' 
+      AND column_name = 'title'
+  ) THEN
+    ALTER TABLE public.campaigns ALTER COLUMN title DROP NOT NULL;
+  END IF;
+END $$;
+
 -- 1. Tabela de Roteiros e Passos do Bot (bot_steps)
 CREATE TABLE IF NOT EXISTS public.bot_steps (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
