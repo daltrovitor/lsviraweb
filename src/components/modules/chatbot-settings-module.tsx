@@ -422,7 +422,7 @@ export function ChatbotSettingsModule() {
             <Card glow>
               <div className="flex items-center justify-between mb-4">
                 <CardTitle className="text-sm">Passos e Menus</CardTitle>
-                <Button variant="outline" size="sm" className="py-1 px-2.5 rounded-lg text-xs" onClick={handleCreateNewStep}>
+                <Button variant="outline" className="py-1 px-2.5 rounded-lg text-xs" onClick={handleCreateNewStep}>
                   <Plus size={14} /> Novo Passo
                 </Button>
               </div>
@@ -515,7 +515,7 @@ export function ChatbotSettingsModule() {
                     </CardDescription>
                   </div>
                   {activeStep.id && (
-                    <Button variant="danger" size="sm" onClick={() => handleDeleteStep(activeStep.id!)}>
+                    <Button variant="danger" onClick={() => handleDeleteStep(activeStep.id!)}>
                       <Trash2 size={15} /> Excluir
                     </Button>
                   )}
@@ -560,7 +560,7 @@ export function ChatbotSettingsModule() {
                     <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                       Opções e Roteamento (Menu de Opções)
                     </label>
-                    <Button variant="outline" size="sm" className="py-1 px-2.5 rounded-lg text-xs" onClick={handleAddOption}>
+                    <Button variant="outline" className="py-1 px-2.5 rounded-lg text-xs" onClick={handleAddOption}>
                       <Plus size={12} /> Adicionar Opção
                     </Button>
                   </div>
@@ -598,7 +598,7 @@ export function ChatbotSettingsModule() {
                               ))}
                             </select>
                           </div>
-                          <Button variant="danger" size="sm" className="p-2.5" onClick={() => handleRemoveOption(index)}>
+                          <Button variant="danger" className="p-2.5" onClick={() => handleRemoveOption(index)}>
                             <Trash2 size={14} className="text-red-500" />
                           </Button>
                         </div>
@@ -650,7 +650,7 @@ export function ChatbotSettingsModule() {
                 Acompanhe o estado de atendimento das conversas dos clientes em tempo real.
               </CardDescription>
             </div>
-            <Button variant="secondary" size="sm" onClick={loadSessions}>
+            <Button variant="secondary" onClick={loadSessions}>
               <RefreshCw size={14} className="mr-1" /> Atualizar
             </Button>
           </CardHeader>
@@ -709,7 +709,6 @@ export function ChatbotSettingsModule() {
                         {session.status !== 'HUMANO' && (
                           <Button 
                             variant="outline" 
-                            size="sm" 
                             className="py-1 px-2 text-xs" 
                             onClick={() => handleUpdateSessionStatus(session.id, 'HUMANO')}
                           >
@@ -719,7 +718,6 @@ export function ChatbotSettingsModule() {
                         {session.status !== 'GERAL' && (
                           <Button 
                             variant="secondary" 
-                            size="sm" 
                             className="py-1 px-2 text-xs" 
                             onClick={() => handleUpdateSessionStatus(session.id, 'GERAL')}
                           >
@@ -728,7 +726,6 @@ export function ChatbotSettingsModule() {
                         )}
                         <Button 
                           variant="danger" 
-                          size="sm" 
                           className="py-1 px-2 text-xs p-1"
                           onClick={() => handleDeleteSession(session.id)}
                         >

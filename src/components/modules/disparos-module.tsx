@@ -329,6 +329,7 @@ export function DisparosModule() {
       const newCampData = {
         user_id: user.id,
         name: newCampaignName,
+        title: newCampaignName, // ponytail: backward compatibility for schemas where 'title' is NOT NULL
         message: message,
         contacts: contacts.map(c => ({ ...c, status: c.status || 'pending' })),
         delay_min: automation.delayMin,
